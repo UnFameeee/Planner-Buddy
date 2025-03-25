@@ -1,0 +1,193 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Create New Todo</h1>
+    <a href="/todos/view/all" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+  </div>
+  
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 fw-bold text-primary">Todo Information</h6>
+    </div>
+    <div class="card-body">
+      <form id="createTodoForm">
+        <div class="mb-3">
+          <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="title" name="title" required>
+          <div class="invalid-feedback">Title is required</div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="dueDate" class="form-label">Due Date</label>
+            <input type="datetime-local" class="form-control" id="dueDate" name="dueDate">
+          </div>
+          
+          <div class="col-md-6">
+            <label for="priority" class="form-label">Priority <span class="text-danger">*</span></label>
+            <select class="form-select" id="priority" name="priority" required>
+              <option value="">Select priority</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <div class="invalid-feedback">Priority is required</div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="tags" class="form-label">Tags (comma-separated)</label>
+          <input type="text" class="form-control" id="tags" name="tags" placeholder="work, personal, urgent">
+          <div class="form-text">Enter tags separated by commas</div>
+        </div>
+        
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="isCompleted" name="isCompleted">
+          <label class="form-check-label" for="isCompleted">Mark as completed</label>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/todos/view/all'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Todo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      window.location.href = '/auth/login';
+      return;
+    }
+    
+    const createTodoForm = document.getElementById('createTodoForm');
+    
+    createTodoForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Clear previous validation
+      clearValidation();
+      
+      // Validate form
+      if (!validateForm()) {
+        return;
+      }
+      
+      // Collect form data
+      const todoData = {
+        title: document.getElementById('title').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        priority: document.getElementById('priority').value,
+        is_completed: document.getElementById('isCompleted').checked
+      };
+      
+      // Add optional fields if they have values
+      const dueDate = document.getElementById('dueDate').value;
+      if (dueDate) {
+        todoData.due_date = new Date(dueDate).toISOString();
+      }
+      
+      const tags = document.getElementById('tags').value.trim();
+      if (tags) {
+        todoData.tags = tags;
+      }
+      
+      // Create todo
+      fetch('/todos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(todoData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Redirect to todo list
+          window.location.href = '/todos/view/all';
+        } else {
+          // Show error
+          showError(data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error creating todo:', error);
+        showError('An error occurred while creating the todo. Please try again.');
+      });
+    });
+    
+    // Function to validate form
+    function validateForm() {
+      let isValid = true;
+      
+      // Validate title
+      const title = document.getElementById('title');
+      if (!title.value.trim()) {
+        title.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      // Validate priority
+      const priority = document.getElementById('priority');
+      if (!priority.value) {
+        priority.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      return isValid;
+    }
+    
+    // Function to clear validation
+    function clearValidation() {
+      const invalidInputs = document.querySelectorAll('.is-invalid');
+      invalidInputs.forEach(input => {
+        input.classList.remove('is-invalid');
+      });
+      
+      // Remove alert if exists
+      const alertElement = document.querySelector('.alert');
+      if (alertElement) {
+        alertElement.remove();
+      }
+    }
+    
+    // Function to show error
+    function showError(message) {
+      // Create alert
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-danger alert-dismissible fade show mt-3';
+      alert.role = 'alert';
+      alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      
+      // Insert alert before form
+      createTodoForm.insertAdjacentElement('beforebegin', alert);
+    }
+    
+    // Add event listeners to fields for validation on input
+    document.getElementById('title').addEventListener('input', function() {
+      this.classList.remove('is-invalid');
+    });
+    
+    document.getElementById('priority').addEventListener('change', function() {
+      this.classList.remove('is-invalid');
+    });
+  });
+</script>
+
+<%- include('../partials/footer') %> 

@@ -1,0 +1,35 @@
+<%- include('partials/header') %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow border-danger">
+        <div class="card-header bg-danger text-white">
+          <h3 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Error</h3>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title"><%= message %></h5>
+          
+          <% if (process.env.NODE_ENV !== 'production' && typeof error !== 'undefined') { %>
+            <div class="alert alert-secondary mt-4">
+              <h6 class="alert-heading">Error Details:</h6>
+              <% if (error.stack) { %>
+                <pre class="mb-0"><%= error.stack %></pre>
+              <% } else { %>
+                <pre class="mb-0"><%= error %></pre>
+              <% } %>
+            </div>
+          <% } %>
+          
+          <div class="mt-4">
+            <a href="/" class="btn btn-primary">
+              <i class="fas fa-home me-2"></i>Return to Home
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %> 

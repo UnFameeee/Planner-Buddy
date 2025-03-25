@@ -1,0 +1,43 @@
+Viết cho tôi 1 cái requirement cho dự án: "Planner Buddy"
+Technical Requirement:
+- Sử dụng MySQL, EJS, ExpressJS, Bootstrap
+- Sử dụng Code First, có lệnh npm run init-db để add migration
+- Cấu trúc folder sẽ bao gồm: "Utils, service, controller, route, views, database, assets", tất cả những gì liên quan đến database sẽ được lưu vào trong folder database, khi API gọi đến sẽ đi theo flow sau server.js -> route -> controller -> service -> database
+- các table luôn luôn sẽ có cột created_at, updated_at, deleted_at, deleted, và tên của table sẽ được đặt theo dạng "tên_bảng" và là tiếng anh. Các cột ID mặc định sẽ sử dụng GUID
+- table user sẽ có cờ is_active (true/false) và timezone.
+- sẽ có table setting (key, value, description) để lưu các setting của hệ thống (và chỉ có admin được vào và sửa đổi)
+- Có file env, và lưu ý tất cả các AI prompt (AI prompt là master prompt sẽ cover đi user-prompt) sẽ được lưu vào trong file env.
+- Có sử dụng JWT token để xác thực người dùng, chỉ sử dụng access_token. access_token sẽ được lưu vào local storage, và không cần sử dụng gì liên quan đến cookie. Khi access_token hết hạn thì sẽ redirect người dùng về trang login và xóa token đó đi.
+- Tất cả các logic liên quan đến AI sẽ sử dụng dùng API (axois) để gọi đến endpoint
+- UI/UX sẽ được sử dụng bootstrap, giao diện đẹp mắt, hiện đại, màu chủ đạo là #72d1a8
+- Tất cả các trang sẽ có header, footer, sidebar.
+- Tất cả các table UI/UX của hệ thống sẽ có filter, sort, pagination, search, và các cột sẽ được tự động wrap text.
+
+
+Functional Requirement:
+1. Mục Đích Chung
+Quản lý công việc và lịch hẹn: Giúp người dùng theo dõi các công việc cần làm và các cuộc hẹn một cách trực quan.
+Nhắc nhở kịp thời: Gửi thông báo qua Gmail để đảm bảo người dùng không bỏ lỡ công việc hoặc sự kiện quan trọng.
+2. Yêu Cầu Chức Năng
+2.1 Quản Lý Todo List:
+Thêm/Sửa/Xóa công việc: Người dùng có thể tạo mới, chỉnh sửa và xoá công việc.
+Thông tin công việc: Mỗi công việc có các trường như tiêu đề, mô tả, ngày giờ hết hạn.
+Đánh dấu hoàn thành: Cho phép người dùng đánh dấu công việc đã thực hiện xong.
+Phân loại và sắp xếp: Hỗ trợ gán nhãn (tag) hoặc ưu tiên cho từng công việc và sắp xếp theo ngày hết hạn hoặc trạng thái.
+2.2 Quản Lý Lịch Hẹn:
+Tạo và quản lý lịch hẹn: Người dùng có thể lập lịch các cuộc họp, hẹn gặp… với thông tin chi tiết (tiêu đề, mô tả, ngày, giờ bắt đầu và kết thúc).
+Hiển thị lịch: Cung cấp giao diện lịch (theo ngày/tuần/tháng) để theo dõi nhanh các sự kiện đã đặt.
+2.3 Tính Năng Nhắc Nhở qua Gmail:
+Gửi email tự động: Tích hợp Gmail API để gửi email nhắc nhở cho người dùng khi công việc hoặc lịch hẹn sắp đến.
+Thiết lập thời gian nhắc: Cho phép cấu hình mốc thời gian gửi nhắc (ví dụ: 15 phút, 1 giờ, 24 giờ trước sự kiện).
+Nội dung email tùy chỉnh: Cho phép người dùng tùy chỉnh nội dung email nhắc để phù hợp với từng sự kiện hoặc công việc.
+2.4 Đồng Bộ Hóa Dữ Liệu:
+Đồng bộ trên nhiều thiết bị: Dữ liệu công việc và lịch hẹn được cập nhật và đồng bộ hóa giữa các thiết bị (desktop, mobile) theo thời gian thực.
+Đăng nhập bằng Tài khoản Google: Sử dụng Google OAuth để đăng nhập và tích hợp với Gmail một cách an toàn.
+3. Yêu Cầu Phi Chức Năng
+3.1 Giao Diện Người Dùng:
+Đơn giản và thân thiện: Giao diện trực quan, dễ sử dụng cho mọi đối tượng người dùng.
+Responsive: Ứng dụng hiển thị tốt trên cả desktop và thiết bị di động.
+3.2 Bảo Mật:
+Xác thực người dùng: Đảm bảo chỉ người dùng đã đăng nhập mới có quyền truy cập và thao tác trên dữ liệu của mình.
+Bảo mật dữ liệu: Lưu trữ thông tin cá nhân và công việc một cách bảo mật, sử dụng các biện pháp mã hóa khi cần.

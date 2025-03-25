@@ -1,0 +1,261 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Edit Todo</h1>
+    <a href="/todos/view/all" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+  </div>
+  
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 fw-bold text-primary">Todo Information</h6>
+    </div>
+    <div class="card-body">
+      <div id="loadingSpinner" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading todo data...</p>
+      </div>
+      
+      <form id="editTodoForm" style="display: none;">
+        <input type="hidden" id="todoId">
+        
+        <div class="mb-3">
+          <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="title" name="title" required>
+          <div class="invalid-feedback">Title is required</div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="dueDate" class="form-label">Due Date</label>
+            <input type="datetime-local" class="form-control" id="dueDate" name="dueDate">
+          </div>
+          
+          <div class="col-md-6">
+            <label for="priority" class="form-label">Priority <span class="text-danger">*</span></label>
+            <select class="form-select" id="priority" name="priority" required>
+              <option value="">Select priority</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <div class="invalid-feedback">Priority is required</div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="tags" class="form-label">Tags (comma-separated)</label>
+          <input type="text" class="form-control" id="tags" name="tags" placeholder="work, personal, urgent">
+          <div class="form-text">Enter tags separated by commas</div>
+        </div>
+        
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="isCompleted" name="isCompleted">
+          <label class="form-check-label" for="isCompleted">Mark as completed</label>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/todos/view/all'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Todo</button>
+        </div>
+      </form>
+      
+      <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      window.location.href = '/auth/login';
+      return;
+    }
+    
+    // Get todo ID from URL
+    const pathParts = window.location.pathname.split('/');
+    const todoId = pathParts[pathParts.length - 1];
+    
+    if (!todoId) {
+      showError('Todo ID is missing from the URL');
+      return;
+    }
+    
+    document.getElementById('todoId').value = todoId;
+    
+    // Elements
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const editTodoForm = document.getElementById('editTodoForm');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    // Load todo data
+    fetch(`/todos/${todoId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      loadingSpinner.style.display = 'none';
+      
+      if (data.success) {
+        const todo = data.data;
+        
+        // Fill form fields
+        document.getElementById('title').value = todo.title || '';
+        document.getElementById('description').value = todo.description || '';
+        document.getElementById('priority').value = todo.priority || '';
+        document.getElementById('isCompleted').checked = todo.is_completed || false;
+        
+        // Handle due date
+        if (todo.due_date) {
+          // Convert to local datetime-local format
+          const dueDate = new Date(todo.due_date);
+          const year = dueDate.getFullYear();
+          const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+          const day = String(dueDate.getDate()).padStart(2, '0');
+          const hours = String(dueDate.getHours()).padStart(2, '0');
+          const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+          
+          document.getElementById('dueDate').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        
+        // Handle tags
+        if (todo.tags) {
+          // Check if tags is an array or string
+          if (Array.isArray(todo.tags)) {
+            document.getElementById('tags').value = todo.tags.join(', ');
+          } else if (typeof todo.tags === 'string') {
+            document.getElementById('tags').value = todo.tags;
+          }
+        }
+        
+        // Show form
+        editTodoForm.style.display = 'block';
+      } else {
+        showError(data.message || 'Failed to load todo data');
+      }
+    })
+    .catch(error => {
+      loadingSpinner.style.display = 'none';
+      console.error('Error loading todo:', error);
+      showError('An error occurred while loading the todo. Please try again.');
+    });
+    
+    // Handle form submission
+    editTodoForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Clear previous validation
+      clearValidation();
+      
+      // Validate form
+      if (!validateForm()) {
+        return;
+      }
+      
+      // Collect form data
+      const todoData = {
+        title: document.getElementById('title').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        priority: document.getElementById('priority').value,
+        is_completed: document.getElementById('isCompleted').checked
+      };
+      
+      // Add optional fields if they have values
+      const dueDate = document.getElementById('dueDate').value;
+      if (dueDate) {
+        todoData.due_date = new Date(dueDate).toISOString();
+      }
+      
+      const tags = document.getElementById('tags').value.trim();
+      if (tags) {
+        todoData.tags = tags;
+      }
+      
+      // Update todo
+      fetch(`/todos/${todoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(todoData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Redirect to todo list
+          window.location.href = '/todos/view/all';
+        } else {
+          // Show error
+          showError(data.message || 'Failed to update todo');
+        }
+      })
+      .catch(error => {
+        console.error('Error updating todo:', error);
+        showError('An error occurred while updating the todo. Please try again.');
+      });
+    });
+    
+    // Function to validate form
+    function validateForm() {
+      let isValid = true;
+      
+      // Validate title
+      const title = document.getElementById('title');
+      if (!title.value.trim()) {
+        title.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      // Validate priority
+      const priority = document.getElementById('priority');
+      if (!priority.value) {
+        priority.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      return isValid;
+    }
+    
+    // Function to clear validation
+    function clearValidation() {
+      const invalidInputs = document.querySelectorAll('.is-invalid');
+      invalidInputs.forEach(input => {
+        input.classList.remove('is-invalid');
+      });
+      
+      errorMessage.style.display = 'none';
+    }
+    
+    // Function to show error
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      loadingSpinner.style.display = 'none';
+    }
+    
+    // Add event listeners to fields for validation on input
+    document.getElementById('title').addEventListener('input', function() {
+      this.classList.remove('is-invalid');
+    });
+    
+    document.getElementById('priority').addEventListener('change', function() {
+      this.classList.remove('is-invalid');
+    });
+  });
+</script>
+
+<%- include('../partials/footer') %> 

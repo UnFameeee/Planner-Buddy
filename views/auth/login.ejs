@@ -1,0 +1,110 @@
+<%- include('../partials/header') %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h3 class="card-title mb-0">Login</h3>
+        </div>
+        <div class="card-body">
+          <div id="loginAlert" class="alert alert-danger d-none" role="alert"></div>
+          
+          <form id="loginForm">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+          </form>
+        </div>
+        <div class="card-footer text-center">
+          <p class="mb-0">Don't have an account? <a href="/auth/register">Register</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is already logged in (has token)
+    const token = localStorage.getItem('token');
+    
+    // If token exists, redirect to home page
+    if (token) {
+      try {
+        // Try to decode the token to check if it's expired
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const exp = payload.exp * 1000; // Convert to milliseconds
+        
+        if (Date.now() < exp) {
+          // Token is valid, redirect to home
+          window.location.href = '/';
+          return; // Stop executing rest of script
+        } else {
+          // Token is expired, remove it
+          localStorage.removeItem('token');
+          // Continue with login page
+        }
+      } catch (e) {
+        // Invalid token format, remove it
+        localStorage.removeItem('token');
+        // Continue with login page
+      }
+    }
+    
+    // Login form handling
+    const loginForm = document.getElementById('loginForm');
+    const loginAlert = document.getElementById('loginAlert');
+    
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      // Clear previous alerts
+      loginAlert.classList.add('d-none');
+      
+      // Submit login request
+      fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Store token in local storage
+          localStorage.setItem('token', data.data.token);
+          console.log('Token set in localStorage:', data.data.token);
+          
+          // Redirect to home page
+          window.location.href = '/';
+        } else {
+          // Show error message
+          loginAlert.textContent = data.message;
+          loginAlert.classList.remove('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+        loginAlert.textContent = 'An error occurred during login. Please try again.';
+        loginAlert.classList.remove('d-none');
+      });
+    });
+  });
+</script>
+
+<%- include('../partials/footer') %> 

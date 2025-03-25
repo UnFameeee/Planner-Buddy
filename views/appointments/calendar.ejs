@@ -1,0 +1,267 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Appointment Calendar</h1>
+    <a href="/appointments/view/create" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Add Appointment
+    </a>
+  </div>
+  
+  <div class="row">
+    <!-- Calendar View Controls -->
+    <div class="col-md-12 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center">
+          <h6 class="m-0 fw-bold text-primary">Calendar</h6>
+          <div class="d-flex">
+            <div class="btn-group me-2">
+              <button type="button" class="btn btn-outline-secondary" id="prevBtn">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" id="todayBtn">Today</button>
+              <button type="button" class="btn btn-outline-secondary" id="nextBtn">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="btn-group">
+              <button type="button" class="btn btn-outline-secondary active" id="monthViewBtn">Month</button>
+              <button type="button" class="btn btn-outline-secondary" id="weekViewBtn">Week</button>
+              <button type="button" class="btn btn-outline-secondary" id="dayViewBtn">Day</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <h2 id="calendarTitle" class="h4 mb-4 text-center"></h2>
+          
+          <!-- Month View -->
+          <div id="monthView" class="calendar-view">
+            <div class="table-responsive">
+              <table class="table table-bordered calendar-table">
+                <thead>
+                  <tr>
+                    <th>Sun</th>
+                    <th>Mon</th>
+                    <th>Tue</th>
+                    <th>Wed</th>
+                    <th>Thu</th>
+                    <th>Fri</th>
+                    <th>Sat</th>
+                  </tr>
+                </thead>
+                <tbody id="monthViewBody">
+                  <!-- Month calendar will be generated here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Week View -->
+          <div id="weekView" class="calendar-view" style="display: none;">
+            <div class="table-responsive">
+              <table class="table table-bordered calendar-table">
+                <thead>
+                  <tr id="weekViewHeader">
+                    <!-- Week day headers will be generated here -->
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="weekViewBody" style="height: 500px;">
+                    <!-- Week calendar will be generated here -->
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Day View -->
+          <div id="dayView" class="calendar-view" style="display: none;">
+            <div class="table-responsive">
+              <table class="table table-bordered calendar-table">
+                <thead>
+                  <tr>
+                    <th id="dayViewHeader" colspan="2">
+                      <!-- Day header will be generated here -->
+                    </th>
+                  </tr>
+                  <tr>
+                    <th style="width: 100px;">Time</th>
+                    <th>Events</th>
+                  </tr>
+                </thead>
+                <tbody id="dayViewBody">
+                  <!-- Day calendar will be generated here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Upcoming Appointments -->
+    <div class="col-md-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary">Upcoming Appointments</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="upcomingTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Location</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="upcomingList">
+                <!-- Loading spinner -->
+                <tr>
+                  <td colspan="7" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Appointment Detail Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="appointmentModalLabel">Appointment Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h4 id="modalTitle" class="mb-3"></h4>
+        
+        <div class="mb-3">
+          <div class="d-flex">
+            <div class="text-muted me-2"><i class="far fa-calendar"></i></div>
+            <div id="modalDate"></div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex">
+            <div class="text-muted me-2"><i class="far fa-clock"></i></div>
+            <div id="modalTime"></div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex">
+            <div class="text-muted me-2"><i class="fas fa-tag"></i></div>
+            <div id="modalType"></div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex">
+            <div class="text-muted me-2"><i class="fas fa-map-marker-alt"></i></div>
+            <div id="modalLocation"></div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="text-muted mb-1">Notes:</div>
+          <div id="modalNotes" class="p-2 border rounded"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="editAppointmentBtn" href="#" class="btn btn-primary">Edit</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .calendar-table {
+    table-layout: fixed;
+  }
+  
+  .calendar-day {
+    height: 120px;
+    position: relative;
+    padding: 5px !important;
+    vertical-align: top;
+  }
+  
+  .calendar-day-header {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .calendar-day.other-month {
+    background-color: #f8f9fa;
+    color: #adb5bd;
+  }
+  
+  .calendar-day.today {
+    background-color: #fff8e1;
+  }
+  
+  .appointment-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+  
+  .appointment-item {
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  
+  .week-day-col {
+    position: relative;
+  }
+  
+  .time-slot {
+    height: 30px;
+    border-top: 1px solid #e9ecef;
+    position: relative;
+  }
+  
+  .time-label {
+    text-align: right;
+    padding-right: 10px;
+    font-size: 0.8rem;
+  }
+  
+  .day-appointment {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    overflow: hidden;
+    padding: 2px 5px;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    z-index: 10;
+    cursor: pointer;
+  }
+</style>
+
+<%- include('../partials/footer') %>
+<%- include('./calendar-script') %> 
