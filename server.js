@@ -4,6 +4,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const settingService = require('./services/setting.service');
+const { verifyToken } = require('./src/utils/auth.util');
+const { User } = require('./src/database/models');
 
 // Middleware
 app.use(express.json());
@@ -13,6 +15,41 @@ app.use(express.static(path.join(__dirname, 'assets')));
 // View engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+
+// Custom middleware to extract JWT from authorization header and set user in req
+app.use(async (req, res, next) => {
+  try {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      
+      if (decoded) {
+        // Find user by id
+        const user = await User.findByPk(decoded.id);
+        
+        if (user && user.is_active) {
+          // Set user in request
+          req.user = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            is_active: user.is_active,
+            timezone: user.timezone
+          };
+        }
+      }
+    }
+    
+    next();
+  } catch (error) {
+    console.error('JWT extraction error:', error);
+    // Continue without setting user
+    next();
+  }
+});
 
 // Routes
 const authRoutes = require('./routes/auth.routes');

@@ -1,8 +1,8 @@
 <%- include('partials/header') %>
 
 <div class="container-fluid" id="contentContainer">
-  <% if (typeof user !== 'undefined') { %>
-    <!-- Logged in user view -->
+  <% if (typeof user !== 'undefined' && user) { %>
+    <!-- Logged in user view (server-side rendering) -->
     <div class="row">
       <div class="col-12">
         <div class="jumbotron py-5">
@@ -53,18 +53,27 @@
       </div>
     </div>
   <% } else { %>
-    <!-- Public landing page -->
-    <div class="row min-vh-100 align-items-center">
-      <div class="col-lg-6 d-flex flex-column justify-content-center text-center text-lg-start p-5">
-        <h1 class="display-4 fw-bold mb-4">Plan Your Day with Planner Buddy</h1>
-        <p class="lead mb-4">A comprehensive task and appointment management system with email reminders via Gmail.</p>
-        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-          <a href="/auth/register" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
-          <a href="/auth/login" class="btn btn-outline-primary btn-lg px-4">Login</a>
-        </div>
+    <!-- Client-side check for authentication -->
+    <div id="auth-check-loading" class="d-flex justify-content-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
       </div>
-      <div class="col-lg-6 d-none d-lg-block p-5">
-        <img src="https://source.unsplash.com/random/800x600/?calendar,productivity" class="img-fluid rounded shadow-lg" alt="Planner Buddy">
+    </div>
+    
+    <!-- Public landing page (will be shown if no token) -->
+    <div id="guest-content" class="d-none">
+      <div class="row min-vh-100 align-items-center">
+        <div class="col-lg-6 d-flex flex-column justify-content-center text-center text-lg-start p-5">
+          <h1 class="display-4 fw-bold mb-4">Plan Your Day with Planner Buddy</h1>
+          <p class="lead mb-4">A comprehensive task and appointment management system with email reminders via Gmail.</p>
+          <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+            <a href="/auth/register" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+            <a href="/auth/login" class="btn btn-outline-primary btn-lg px-4">Login</a>
+          </div>
+        </div>
+        <div class="col-lg-6 d-none d-lg-block p-5">
+          <img src="https://source.unsplash.com/random/800x600/?calendar,productivity" class="img-fluid rounded shadow-lg" alt="Planner Buddy">
+        </div>
       </div>
     </div>
   <% } %>
@@ -128,32 +137,133 @@
     // Check for token in localStorage
     const token = localStorage.getItem('token');
     
-    if (token) {
+    // If we're rendering the page on the client-side (no user from server)
+    if (document.getElementById('auth-check-loading')) {
+      if (!token) {
+        // No token, show guest content
+        document.getElementById('auth-check-loading').classList.add('d-none');
+        document.getElementById('guest-content').classList.remove('d-none');
+        return;
+      }
+      
       try {
         // Decode token and check expiration
         const payload = JSON.parse(atob(token.split('.')[1]));
         const exp = payload.exp * 1000; // Convert to milliseconds
         
-        if (Date.now() < exp) {
-          // Token is valid, update UI for authenticated user
-          document.getElementById('username').textContent = payload.username;
-          
-          // Replace content with authenticated user view
-          document.getElementById('contentContainer').innerHTML = document.getElementById('authenticatedUserTemplate').innerHTML;
-          document.getElementById('authenticatedUserTemplate').remove();
-          
-          // Load data for authenticated user
-          loadAuthenticatedUserData(token);
-        } else {
-          // Token expired, remove it
+        if (Date.now() >= exp) {
+          // Token expired, remove it and show guest content
           localStorage.removeItem('token');
+          document.getElementById('auth-check-loading').classList.add('d-none');
+          document.getElementById('guest-content').classList.remove('d-none');
+          return;
         }
+        
+        // Token is valid, update UI for authenticated user
+        document.getElementById('username').textContent = payload.username;
+        
+        // Replace content with authenticated user view
+        document.getElementById('contentContainer').innerHTML = document.getElementById('authenticatedUserTemplate').innerHTML;
+        document.getElementById('authenticatedUserTemplate').remove();
+        document.getElementById('auth-check-loading').remove();
+        
+        // Load data for authenticated user
+        loadAuthenticatedUserData(token);
       } catch (e) {
         console.error('Error parsing token:', e);
         localStorage.removeItem('token');
+        document.getElementById('auth-check-loading').classList.add('d-none');
+        document.getElementById('guest-content').classList.remove('d-none');
       }
+    } else if (token && typeof user !== 'undefined' && user) {
+      // Server-side rendering with user already defined
+      // Just load the data
+      loadServerRenderedData();
     }
   });
+  
+  function loadServerRenderedData() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    // Fetch recent todos
+    fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const todosContainer = document.getElementById('recentTodos');
+      
+      if (data.success && data.data.todos && data.data.todos.length > 0) {
+        let html = '<ul class="list-group list-group-flush">';
+        
+        data.data.todos.forEach(todo => {
+          const dueDate = todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'No due date';
+          const priorityClass = todo.priority === 'high' ? 'text-danger' : 
+                               todo.priority === 'medium' ? 'text-warning' : 'text-success';
+          
+          html += `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0">${todo.title}</h6>
+                <small class="text-muted">Due: ${dueDate}</small>
+              </div>
+              <span class="badge rounded-pill ${priorityClass}">${todo.priority}</span>
+            </li>
+          `;
+        });
+        
+        html += '</ul>';
+        todosContainer.innerHTML = html;
+      } else {
+        todosContainer.innerHTML = '<p class="text-center">No todos found. Create one!</p>';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching todos:', error);
+      document.getElementById('recentTodos').innerHTML = '<p class="text-danger">Error loading todos</p>';
+    });
+    
+    // Fetch upcoming appointments
+    fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const appointmentsContainer = document.getElementById('upcomingAppointments');
+      
+      if (data.success && data.data.appointments && data.data.appointments.length > 0) {
+        let html = '<ul class="list-group list-group-flush">';
+        
+        data.data.appointments.forEach(appointment => {
+          const startTime = new Date(appointment.start_time).toLocaleString();
+          
+          html += `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0">${appointment.title}</h6>
+                <small class="text-muted">${startTime}</small>
+              </div>
+              <small class="text-muted">${appointment.location || 'No location'}</small>
+            </li>
+          `;
+        });
+        
+        html += '</ul>';
+        appointmentsContainer.innerHTML = html;
+      } else {
+        appointmentsContainer.innerHTML = '<p class="text-center">No appointments found. Create one!</p>';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching appointments:', error);
+      document.getElementById('upcomingAppointments').innerHTML = '<p class="text-danger">Error loading appointments</p>';
+    });
+  }
   
   function loadAuthenticatedUserData(token) {
     // Fetch recent todos
@@ -193,7 +303,9 @@
     })
     .catch(error => {
       console.error('Error fetching todos:', error);
-      document.getElementById('recentTodosAuth').innerHTML = '<p class="text-danger">Error loading todos</p>';
+      if (document.getElementById('recentTodosAuth')) {
+        document.getElementById('recentTodosAuth').innerHTML = '<p class="text-danger">Error loading todos</p>';
+      }
     });
     
     // Fetch upcoming appointments
@@ -231,101 +343,11 @@
     })
     .catch(error => {
       console.error('Error fetching appointments:', error);
-      document.getElementById('upcomingAppointmentsAuth').innerHTML = '<p class="text-danger">Error loading appointments</p>';
+      if (document.getElementById('upcomingAppointmentsAuth')) {
+        document.getElementById('upcomingAppointmentsAuth').innerHTML = '<p class="text-danger">Error loading appointments</p>';
+      }
     });
   }
 </script>
-
-<% if (typeof user !== 'undefined') { %>
-  <!-- Scripts for loading dashboard data -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        window.location.href = '/auth/login';
-        return;
-      }
-      
-      // Fetch recent todos
-      fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        const todosContainer = document.getElementById('recentTodos');
-        
-        if (data.success && data.data.todos && data.data.todos.length > 0) {
-          let html = '<ul class="list-group list-group-flush">';
-          
-          data.data.todos.forEach(todo => {
-            const dueDate = todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'No due date';
-            const priorityClass = todo.priority === 'high' ? 'text-danger' : 
-                                 todo.priority === 'medium' ? 'text-warning' : 'text-success';
-            
-            html += `
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="mb-0">${todo.title}</h6>
-                  <small class="text-muted">Due: ${dueDate}</small>
-                </div>
-                <span class="badge rounded-pill ${priorityClass}">${todo.priority}</span>
-              </li>
-            `;
-          });
-          
-          html += '</ul>';
-          todosContainer.innerHTML = html;
-        } else {
-          todosContainer.innerHTML = '<p class="text-center">No todos found. Create one!</p>';
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching todos:', error);
-        document.getElementById('recentTodos').innerHTML = '<p class="text-danger">Error loading todos</p>';
-      });
-      
-      // Fetch upcoming appointments
-      fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        const appointmentsContainer = document.getElementById('upcomingAppointments');
-        
-        if (data.success && data.data.appointments && data.data.appointments.length > 0) {
-          let html = '<ul class="list-group list-group-flush">';
-          
-          data.data.appointments.forEach(appointment => {
-            const startTime = new Date(appointment.start_time).toLocaleString();
-            
-            html += `
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="mb-0">${appointment.title}</h6>
-                  <small class="text-muted">${startTime}</small>
-                </div>
-                <small class="text-muted">${appointment.location || 'No location'}</small>
-              </li>
-            `;
-          });
-          
-          html += '</ul>';
-          appointmentsContainer.innerHTML = html;
-        } else {
-          appointmentsContainer.innerHTML = '<p class="text-center">No appointments found. Create one!</p>';
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching appointments:', error);
-        document.getElementById('upcomingAppointments').innerHTML = '<p class="text-danger">Error loading appointments</p>';
-      });
-    });
-  </script>
-<% } %>
 
 <%- include('partials/footer') %> 

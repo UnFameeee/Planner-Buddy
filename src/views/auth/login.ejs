@@ -90,6 +90,15 @@
           localStorage.setItem('token', data.data.token);
           console.log('Token set in localStorage:', data.data.token);
           
+          // Set token in Authorization header for all subsequent fetch requests
+          const originalFetch = window.fetch;
+          window.fetch = function(url, options = {}) {
+            options = options || {};
+            options.headers = options.headers || {};
+            options.headers['Authorization'] = `Bearer ${data.data.token}`;
+            return originalFetch(url, options);
+          };
+          
           // Redirect to home page
           window.location.href = '/';
         } else {

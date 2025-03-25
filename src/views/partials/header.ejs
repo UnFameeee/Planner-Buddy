@@ -190,10 +190,23 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Add Authorization header to ALL fetch requests
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        options.headers = options.headers || {};
+        options.headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      return originalFetch(url, options);
+    };
+    
     // Function to check if token is valid
     function checkAndHandleToken() {
       const token = localStorage.getItem('token');
-      console.log('Token from localStorage:', token);
+      console.log('Token from localStorage:', token ? 'Token exists' : 'No token');
       
       if (!token) {
         console.warn('No token found in localStorage');
@@ -210,7 +223,6 @@
         }
         
         const payload = JSON.parse(atob(parts[1]));
-        console.log('Decoded token payload:', payload);
         const exp = payload.exp * 1000; // Convert to milliseconds
         
         if (Date.now() >= exp) {
