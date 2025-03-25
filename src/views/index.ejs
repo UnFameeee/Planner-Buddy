@@ -1,352 +1,347 @@
 <%- include('partials/header') %>
 
-<div class="container-fluid" id="contentContainer">
-  <% if (typeof user !== 'undefined' && user) { %>
-    <!-- Logged in user view (server-side rendering) -->
-    <div class="row">
-      <div class="col-12">
-        <div class="jumbotron py-5">
-          <h1 class="display-5">Welcome, <%= user.username %>!</h1>
-          <p class="lead">Manage your tasks and appointments with Planner Buddy.</p>
-          <hr class="my-4">
-        </div>
-      </div>
-    </div>
-    
-    <div class="row mb-4">
-      <div class="col-md-6 mb-4">
-        <div class="card h-100">
-          <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0"><i class="fas fa-tasks"></i> Recent Todos</h5>
-          </div>
-          <div class="card-body" id="recentTodos">
-            <div class="d-flex justify-content-center">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer">
-            <a href="/todos/view/all" class="btn btn-sm btn-primary">View All Todos</a>
-            <a href="/todos/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="col-md-6 mb-4">
-        <div class="card h-100">
-          <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0"><i class="far fa-calendar-alt"></i> Upcoming Appointments</h5>
-          </div>
-          <div class="card-body" id="upcomingAppointments">
-            <div class="d-flex justify-content-center">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer">
-            <a href="/appointments/view/calendar" class="btn btn-sm btn-primary">View Calendar</a>
-            <a href="/appointments/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  <% } else { %>
-    <!-- Client-side check for authentication -->
-    <div id="auth-check-loading" class="d-flex justify-content-center my-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-    
-    <!-- Public landing page (will be shown if no token) -->
-    <div id="guest-content" class="d-none">
-      <div class="row min-vh-100 align-items-center">
-        <div class="col-lg-6 d-flex flex-column justify-content-center text-center text-lg-start p-5">
-          <h1 class="display-4 fw-bold mb-4">Plan Your Day with Planner Buddy</h1>
-          <p class="lead mb-4">A comprehensive task and appointment management system with email reminders via Gmail.</p>
-          <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-            <a href="/auth/register" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
-            <a href="/auth/login" class="btn btn-outline-primary btn-lg px-4">Login</a>
-          </div>
-        </div>
-        <div class="col-lg-6 d-none d-lg-block p-5">
-          <img src="https://source.unsplash.com/random/800x600/?calendar,productivity" class="img-fluid rounded shadow-lg" alt="Planner Buddy">
-        </div>
-      </div>
-    </div>
-  <% } %>
+<% if (typeof user !== 'undefined' && user) { %>
+<!-- Logged in user view (server-side rendering) -->
+<div class="jumbotron py-5">
+  <h1 class="display-5 fw-bold">Welcome, <%= user.username %>!</h1>
+  <p class="lead">Manage your tasks and appointments with Planner Buddy.</p>
+  <hr class="my-4">
 </div>
 
-<!-- Authenticated user view template (hidden) -->
-<div id="authenticatedUserTemplate" style="display: none;">
-  <div class="row">
-    <div class="col-12">
-      <div class="jumbotron py-5">
-        <h1 class="display-5">Welcome, <span id="username"></span>!</h1>
-        <p class="lead">Manage your tasks and appointments with Planner Buddy.</p>
-        <hr class="my-4">
+<div class="row mb-4">
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-tasks"></i> Recent Todos</h5>
+      </div>
+      <div class="card-body" id="recentTodos">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <a href="/todos/view/all" class="btn btn-sm btn-primary">View All Todos</a>
+        <a href="/todos/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
       </div>
     </div>
   </div>
   
-  <div class="row mb-4">
-    <div class="col-md-6 mb-4">
-      <div class="card h-100">
-        <div class="card-header bg-primary text-white">
-          <h5 class="card-title mb-0"><i class="fas fa-tasks"></i> Recent Todos</h5>
-        </div>
-        <div class="card-body" id="recentTodosAuth">
-          <div class="d-flex justify-content-center">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="far fa-calendar-alt"></i> Upcoming Appointments</h5>
+      </div>
+      <div class="card-body" id="upcomingAppointments">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <div class="card-footer">
-          <a href="/todos/view/all" class="btn btn-sm btn-primary">View All Todos</a>
-          <a href="/todos/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
+      </div>
+      <div class="card-footer">
+        <a href="/appointments/view/calendar" class="btn btn-sm btn-primary">View Calendar</a>
+        <a href="/appointments/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
+      </div>
+    </div>
+  </div>
+</div>
+<% } else { %>
+<!-- Public landing page for non-authenticated users -->
+<div class="container py-5">
+  <div class="row align-items-center min-vh-75">
+    <div class="col-lg-6 d-flex flex-column justify-content-center text-center text-lg-start">
+      <span class="badge bg-light text-primary rounded-pill px-3 py-2 mb-3 d-inline-block" style="max-width: fit-content;">Simple. Powerful. Productive.</span>
+      <h1 class="display-4 fw-bold mb-4">Plan Your Day with Planner Buddy</h1>
+      <p class="lead mb-4">A comprehensive task and appointment management system with email reminders via Gmail.</p>
+      <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+        <a href="/auth/register" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+        <a href="/auth/login" class="btn btn-outline-primary btn-lg px-4">Login</a>
+      </div>
+    </div>
+    <div class="col-lg-6 d-none d-lg-block">
+      <div class="d-flex justify-content-center align-items-center h-100">
+        <img src="/img/planner-buddy.png" class="img-fluid" alt="Planner Buddy">
+      </div>
+    </div>
+  </div>
+  
+  <div class="row py-5 mt-5">
+    <div class="col-12 text-center mb-5">
+      <h2 class="fw-bold">Features</h2>
+      <p class="lead">Everything you need to stay organized and productive</p>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 shadow-sm feature-card">
+        <div class="card-body text-center">
+          <div class="feature-icon">
+            <i class="fas fa-tasks fa-3x text-primary"></i>
+          </div>
+          <h4>Task Management</h4>
+          <p>Create, organize, and track your tasks with priorities, due dates, and reminders.</p>
         </div>
       </div>
     </div>
-    
-    <div class="col-md-6 mb-4">
-      <div class="card h-100">
-        <div class="card-header bg-primary text-white">
-          <h5 class="card-title mb-0"><i class="far fa-calendar-alt"></i> Upcoming Appointments</h5>
-        </div>
-        <div class="card-body" id="upcomingAppointmentsAuth">
-          <div class="d-flex justify-content-center">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 shadow-sm feature-card">
+        <div class="card-body text-center">
+          <div class="feature-icon">
+            <i class="far fa-calendar-alt fa-3x text-primary"></i>
           </div>
+          <h4>Appointment Scheduling</h4>
+          <p>Schedule and manage appointments with details, locations, and email reminders.</p>
         </div>
-        <div class="card-footer">
-          <a href="/appointments/view/calendar" class="btn btn-sm btn-primary">View Calendar</a>
-          <a href="/appointments/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 shadow-sm feature-card">
+        <div class="card-body text-center">
+          <div class="feature-icon">
+            <i class="far fa-bell fa-3x text-primary"></i>
+          </div>
+          <h4>Email Reminders</h4>
+          <p>Never miss an important deadline with customizable email reminders.</p>
         </div>
       </div>
     </div>
   </div>
 </div>
+<% } %>
 
+<!-- Hidden templates and scripts for client-side rendering -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Check for token in localStorage
-    const token = localStorage.getItem('token');
+    // Chỉ truy cập và tải dữ liệu nếu server đã xác thực người dùng (server-side)
+    if (typeof user !== 'undefined' && user) {
+      console.log('[index.js] User authenticated by server:', user.username);
+      loadDashboardData();
+      // Xóa flag refresh vì đã xác thực thành công
+      sessionStorage.removeItem('landing_refresh');
+      return;
+    }
     
-    // If we're rendering the page on the client-side (no user from server)
-    if (document.getElementById('auth-check-loading')) {
-      if (!token) {
-        // No token, show guest content
-        document.getElementById('auth-check-loading').classList.add('d-none');
-        document.getElementById('guest-content').classList.remove('d-none');
+    console.log('[index.js] Server did not authenticate any user');
+    
+    // Kiểm tra token ở client và redirect một lần duy nhất nếu cần
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('[index.js] No token in localStorage, staying on landing page');
+      return;
+    }
+    
+    try {
+      // Xác thực token
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('Invalid token format');
+      
+      const payload = JSON.parse(atob(parts[1]));
+      const exp = payload.exp * 1000;
+      
+      if (Date.now() >= exp) {
+        console.log('[index.js] Token expired, removing');
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('landing_refresh');
         return;
       }
       
-      try {
-        // Decode token and check expiration
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const exp = payload.exp * 1000; // Convert to milliseconds
+      // Token hợp lệ theo client, nhưng server không xác thực được
+      console.log('[index.js] Found token for user:', payload.username);
+      
+      // Nếu đang ở trang chủ và chưa refresh lần nào
+      if (window.location.pathname === '/' && !sessionStorage.getItem('landing_refresh')) {
+        console.log('[index.js] First attempt to authenticate with server');
+        sessionStorage.setItem('landing_refresh', 'true');
         
-        if (Date.now() >= exp) {
-          // Token expired, remove it and show guest content
-          localStorage.removeItem('token');
-          document.getElementById('auth-check-loading').classList.add('d-none');
-          document.getElementById('guest-content').classList.remove('d-none');
-          return;
-        }
+        // Thử gửi request kiểm tra token
+        fetch('/auth/check-token', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success) {
+            console.log('[index.js] Token check failed:', data.message);
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('landing_refresh');
+            
+            // Thông báo lỗi nhẹ nhàng
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+            alertDiv.innerHTML = `
+              Your session may have expired. <a href="/auth/login" class="alert-link">Click here to log in</a>.
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Chèn thông báo vào đầu trang
+            const container = document.querySelector('.container');
+            if (container && container.firstChild) {
+              container.insertBefore(alertDiv, container.firstChild);
+            }
+          } else {
+            console.log('[index.js] Token is valid, reloading for server authentication');
+            // Không xóa token vì nó vẫn hợp lệ
+            window.location.reload();
+          }
+        })
+        .catch(error => {
+          console.error('[index.js] Error checking token:', error);
+        });
+      } else if (sessionStorage.getItem('landing_refresh')) {
+        console.log('[index.js] Second attempt to authenticate');
         
-        // Token is valid, update UI for authenticated user
-        document.getElementById('username').textContent = payload.username;
-        
-        // Replace content with authenticated user view
-        document.getElementById('contentContainer').innerHTML = document.getElementById('authenticatedUserTemplate').innerHTML;
-        document.getElementById('authenticatedUserTemplate').remove();
-        document.getElementById('auth-check-loading').remove();
-        
-        // Load data for authenticated user
-        loadAuthenticatedUserData(token);
-      } catch (e) {
-        console.error('Error parsing token:', e);
-        localStorage.removeItem('token');
-        document.getElementById('auth-check-loading').classList.add('d-none');
-        document.getElementById('guest-content').classList.remove('d-none');
+        // Đã thử refresh một lần nhưng vẫn không được server xác thực
+        fetch('/auth/check-token', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success) {
+            console.log('[index.js] Token check failed on second attempt:', data.message);
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('landing_refresh');
+            
+            // Thông báo lỗi nhẹ nhàng
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+            alertDiv.innerHTML = `
+              Your session may have expired. <a href="/auth/login" class="alert-link">Click here to log in</a>.
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Chèn thông báo vào đầu trang
+            const container = document.querySelector('.container');
+            if (container && container.firstChild) {
+              container.insertBefore(alertDiv, container.firstChild);
+            }
+          } else {
+            console.log('[index.js] Token is still valid but server authentication failed');
+            // Chỉ xóa session storage và giữ nguyên token
+            sessionStorage.removeItem('landing_refresh');
+            // Không tự động redirect về login nữa
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+            alertDiv.innerHTML = `
+              There was an issue with your session. Please try <a href="javascript:window.location.reload()" class="alert-link">refreshing the page</a>.
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Chèn thông báo vào đầu trang
+            const container = document.querySelector('.container');
+            if (container && container.firstChild) {
+              container.insertBefore(alertDiv, container.firstChild);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('[index.js] Error checking token:', error);
+        });
       }
-    } else if (token && typeof user !== 'undefined' && user) {
-      // Server-side rendering with user already defined
-      // Just load the data
-      loadServerRenderedData();
+    } catch (e) {
+      console.error('[index.js] Error validating token:', e);
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('landing_refresh');
     }
   });
   
-  function loadServerRenderedData() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    
-    // Fetch recent todos
-    fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      const todosContainer = document.getElementById('recentTodos');
-      
-      if (data.success && data.data.todos && data.data.todos.length > 0) {
-        let html = '<ul class="list-group list-group-flush">';
-        
-        data.data.todos.forEach(todo => {
-          const dueDate = todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'No due date';
-          const priorityClass = todo.priority === 'high' ? 'text-danger' : 
-                               todo.priority === 'medium' ? 'text-warning' : 'text-success';
-          
-          html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <h6 class="mb-0">${todo.title}</h6>
-                <small class="text-muted">Due: ${dueDate}</small>
-              </div>
-              <span class="badge rounded-pill ${priorityClass}">${todo.priority}</span>
-            </li>
-          `;
-        });
-        
-        html += '</ul>';
-        todosContainer.innerHTML = html;
-      } else {
-        todosContainer.innerHTML = '<p class="text-center">No todos found. Create one!</p>';
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching todos:', error);
-      document.getElementById('recentTodos').innerHTML = '<p class="text-danger">Error loading todos</p>';
-    });
-    
-    // Fetch upcoming appointments
-    fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      const appointmentsContainer = document.getElementById('upcomingAppointments');
-      
-      if (data.success && data.data.appointments && data.data.appointments.length > 0) {
-        let html = '<ul class="list-group list-group-flush">';
-        
-        data.data.appointments.forEach(appointment => {
-          const startTime = new Date(appointment.start_time).toLocaleString();
-          
-          html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <h6 class="mb-0">${appointment.title}</h6>
-                <small class="text-muted">${startTime}</small>
-              </div>
-              <small class="text-muted">${appointment.location || 'No location'}</small>
-            </li>
-          `;
-        });
-        
-        html += '</ul>';
-        appointmentsContainer.innerHTML = html;
-      } else {
-        appointmentsContainer.innerHTML = '<p class="text-center">No appointments found. Create one!</p>';
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching appointments:', error);
-      document.getElementById('upcomingAppointments').innerHTML = '<p class="text-danger">Error loading appointments</p>';
-    });
+  // Tải dữ liệu cho dashboard
+  function loadDashboardData() {
+    console.log('[index.js] Loading dashboard data');
+    loadTodos();
+    loadAppointments();
   }
   
-  function loadAuthenticatedUserData(token) {
-    // Fetch recent todos
-    fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      const todosContainer = document.getElementById('recentTodosAuth');
-      
-      if (data.success && data.data.todos && data.data.todos.length > 0) {
-        let html = '<ul class="list-group list-group-flush">';
+  // Tải danh sách todos
+  function loadTodos() {
+    fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC')
+      .then(response => {
+        if (!response.ok) throw new Error('Network response not OK');
+        return response.json();
+      })
+      .then(data => {
+        console.log('[index.js] Todos loaded:', data.data?.todos?.length || 0, 'items');
+        const todosContainer = document.getElementById('recentTodos');
+        if (!todosContainer) return;
         
-        data.data.todos.forEach(todo => {
-          const dueDate = todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'No due date';
-          const priorityClass = todo.priority === 'high' ? 'text-danger' : 
+        if (data.success && data.data?.todos?.length > 0) {
+          let html = '<ul class="list-group list-group-flush">';
+          
+          data.data.todos.forEach(todo => {
+            const dueDate = todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'No due date';
+            const priorityClass = todo.priority === 'high' ? 'text-danger' : 
                                todo.priority === 'medium' ? 'text-warning' : 'text-success';
+            
+            html += `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">${todo.title}</h6>
+                  <small class="text-muted">Due: ${dueDate}</small>
+                </div>
+                <span class="badge rounded-pill ${priorityClass}">${todo.priority}</span>
+              </li>
+            `;
+          });
           
-          html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <h6 class="mb-0">${todo.title}</h6>
-                <small class="text-muted">Due: ${dueDate}</small>
-              </div>
-              <span class="badge rounded-pill ${priorityClass}">${todo.priority}</span>
-            </li>
-          `;
-        });
+          html += '</ul>';
+          todosContainer.innerHTML = html;
+        } else {
+          todosContainer.innerHTML = '<p class="text-center">No todos found. Create one!</p>';
+        }
+      })
+      .catch(error => {
+        console.error('[index.js] Error fetching todos:', error);
+        const todosContainer = document.getElementById('recentTodos');
+        if (todosContainer) {
+          todosContainer.innerHTML = '<p class="text-danger">Error loading todos</p>';
+        }
+      });
+  }
+  
+  // Tải danh sách appointments
+  function loadAppointments() {
+    fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC')
+      .then(response => {
+        if (!response.ok) throw new Error('Network response not OK');
+        return response.json();
+      })
+      .then(data => {
+        console.log('[index.js] Appointments loaded:', data.data?.appointments?.length || 0, 'items');
+        const appointmentsContainer = document.getElementById('upcomingAppointments');
+        if (!appointmentsContainer) return;
         
-        html += '</ul>';
-        todosContainer.innerHTML = html;
-      } else {
-        todosContainer.innerHTML = '<p class="text-center">No todos found. Create one!</p>';
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching todos:', error);
-      if (document.getElementById('recentTodosAuth')) {
-        document.getElementById('recentTodosAuth').innerHTML = '<p class="text-danger">Error loading todos</p>';
-      }
-    });
-    
-    // Fetch upcoming appointments
-    fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      const appointmentsContainer = document.getElementById('upcomingAppointmentsAuth');
-      
-      if (data.success && data.data.appointments && data.data.appointments.length > 0) {
-        let html = '<ul class="list-group list-group-flush">';
-        
-        data.data.appointments.forEach(appointment => {
-          const startTime = new Date(appointment.start_time).toLocaleString();
+        if (data.success && data.data?.appointments?.length > 0) {
+          let html = '<ul class="list-group list-group-flush">';
           
-          html += `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <h6 class="mb-0">${appointment.title}</h6>
-                <small class="text-muted">${startTime}</small>
-              </div>
-              <small class="text-muted">${appointment.location || 'No location'}</small>
-            </li>
-          `;
-        });
-        
-        html += '</ul>';
-        appointmentsContainer.innerHTML = html;
-      } else {
-        appointmentsContainer.innerHTML = '<p class="text-center">No appointments found. Create one!</p>';
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching appointments:', error);
-      if (document.getElementById('upcomingAppointmentsAuth')) {
-        document.getElementById('upcomingAppointmentsAuth').innerHTML = '<p class="text-danger">Error loading appointments</p>';
-      }
-    });
+          data.data.appointments.forEach(appointment => {
+            const startTime = new Date(appointment.start_time).toLocaleString();
+            
+            html += `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">${appointment.title}</h6>
+                  <small class="text-muted">${startTime}</small>
+                </div>
+                <small class="text-muted">${appointment.location || 'No location'}</small>
+              </li>
+            `;
+          });
+          
+          html += '</ul>';
+          appointmentsContainer.innerHTML = html;
+        } else {
+          appointmentsContainer.innerHTML = '<p class="text-center">No appointments found. Create one!</p>';
+        }
+      })
+      .catch(error => {
+        console.error('[index.js] Error fetching appointments:', error);
+        const appointmentsContainer = document.getElementById('upcomingAppointments');
+        if (appointmentsContainer) {
+          appointmentsContainer.innerHTML = '<p class="text-danger">Error loading appointments</p>';
+        }
+      });
   }
 </script>
 

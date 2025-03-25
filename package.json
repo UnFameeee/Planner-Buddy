@@ -2,14 +2,15 @@
   "name": "planner-buddy",
   "version": "1.0.0",
   "description": "A task and appointment management system with Gmail reminders",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "init-db": "node src/database/migrations/init-db.js"
   },
   "dependencies": {
     "axios": "^1.8.4",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.3",
     "dotenv": "^16.3.1",
@@ -25,4 +26,4 @@
     "nodemon": "^3.1.9",
     "sequelize-cli": "^6.6.2"
   }
-} 
+}

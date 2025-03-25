@@ -5,15 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Planner Buddy' %></title>
   
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Custom CSS with theme color -->
+  <% const primaryColor = typeof themeColor !== 'undefined' ? themeColor : '#72d1a8'; %>
   <style>
     :root {
-      --primary-color: <%= typeof themeColor !== 'undefined' ? themeColor : '#72d1a8' %>;
+      --primary-color: <%= primaryColor %>;
     }
     
     body {
@@ -21,10 +27,28 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    h1, h2, h3, h4, h5, h6, .navbar-brand {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+    }
+    
+    .lead {
+      font-weight: 300;
+      font-size: 1.15rem;
+      line-height: 1.7;
+    }
+    
+    .display-4 {
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
     
     .navbar-brand {
       font-weight: bold;
+      letter-spacing: -0.5px;
     }
     
     .btn-primary {
@@ -36,6 +60,17 @@
       background-color: var(--primary-color);
       filter: brightness(0.9);
       border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover, .btn-outline-primary:focus {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
     }
     
     .bg-primary {
@@ -52,6 +87,8 @@
     
     .navbar-dark .navbar-nav .nav-link {
       color: rgba(255, 255, 255, 0.85);
+      font-weight: 500;
+      letter-spacing: 0.3px;
     }
     
     .navbar-dark .navbar-nav .nav-link:hover {
@@ -97,12 +134,58 @@
       white-space: normal;
       word-wrap: break-word;
     }
+    
+    /* Landing page styles */
+    .landing-hero {
+      padding: 80px 0;
+      background-color: #f8f9fa;
+    }
+    
+    .landing-content {
+      background: #f9f9f9;
+      flex: 1;
+    }
+    
+    /* Card hover effects */
+    .feature-card {
+      transition: all 0.3s ease;
+      border: none;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    
+    .feature-card .card-body {
+      padding: 2rem;
+    }
+    
+    .feature-card .feature-icon {
+      transition: all 0.3s ease;
+      margin-bottom: 1.5rem;
+    }
+    
+    .feature-card:hover .feature-icon {
+      transform: scale(1.2);
+    }
+    
+    .feature-card h4 {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-card p {
+      color: #6c757d;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-    <div class="container-fluid">
+    <div class="container">
       <a class="navbar-brand" href="/">Planner Buddy</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -142,8 +225,10 @@
   </nav>
   
   <!-- Content wrapper -->
+  <% if (typeof user !== 'undefined' && user) { %>
+  <!-- User is logged in - show sidebar layout -->
   <div class="content">
-    <div class="sidebar user-menu d-none d-md-block">
+    <div class="sidebar user-menu d-md-block">
       <div class="d-grid gap-2">
         <a href="/todos/view/create" class="btn btn-primary mb-3">
           <i class="fas fa-plus"></i> New Todo
@@ -187,100 +272,162 @@
     
     <!-- Main content -->
     <div class="main-content">
+  <% } else { %>
+  <!-- User is not logged in - show full width layout -->
+  <div class="landing-content">
+  <% } %>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Add Authorization header to ALL fetch requests
+    // Cấu hình để tự động gửi token trong mọi request
+    setupTokenHeader();
+    
+    // Xử lý nút logout
+    setupLogoutButton();
+    
+    // Không tự động redirect, chỉ cập nhật UI dựa trên token nếu cần
+    if (typeof user === 'undefined' || !user) {
+      console.log('[header.js] No server-side user, updating UI from token');
+      updateUIFromToken();
+    } else {
+      console.log('[header.js] Server-side user detected:', user.username);
+    }
+  });
+  
+  // Cấu hình để tự động gửi token trong header của mọi request
+  function setupTokenHeader() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    console.log('[header.js] Setting up token interceptors with token:', token.substring(0, 20) + '...');
+    
+    // Fetch API
     const originalFetch = window.fetch;
     window.fetch = function(url, options = {}) {
-      const token = localStorage.getItem('token');
+      // Clone options để tránh tham chiếu
+      options = JSON.parse(JSON.stringify(options || {}));
+      options.headers = options.headers || {};
+      options.headers['Authorization'] = `Bearer ${token}`;
       
-      if (token) {
-        options.headers = options.headers || {};
-        options.headers['Authorization'] = `Bearer ${token}`;
+      // Log thông tin request (chỉ log khi gửi đến API)
+      const isApiRequest = typeof url === 'string' && 
+        (url.startsWith('/todos') || url.startsWith('/appointments') || url.startsWith('/auth'));
+      
+      if (isApiRequest) {
+        console.log(`[header.js] Fetch request to ${url} with Authorization header`);
       }
       
-      return originalFetch(url, options);
+      return originalFetch(url, options).then(response => {
+        // Kiểm tra và cập nhật token từ response header nếu có
+        const newToken = response.headers.get('Authorization');
+        if (newToken && newToken.startsWith('Bearer ')) {
+          const actualToken = newToken.split(' ')[1];
+          if (actualToken !== token) {
+            console.log('[header.js] Updating token from response');
+            localStorage.setItem('token', actualToken);
+          }
+        }
+        return response;
+      });
     };
     
-    // Function to check if token is valid
-    function checkAndHandleToken() {
-      const token = localStorage.getItem('token');
-      console.log('Token from localStorage:', token ? 'Token exists' : 'No token');
-      
-      if (!token) {
-        console.warn('No token found in localStorage');
-        return false;
-      }
-      
-      try {
-        // Decode token and check if it's expired
-        const parts = token.split('.');
-        if (parts.length !== 3) {
-          console.error('Invalid token format');
-          localStorage.removeItem('token');
-          return false;
-        }
-        
-        const payload = JSON.parse(atob(parts[1]));
-        const exp = payload.exp * 1000; // Convert to milliseconds
-        
-        if (Date.now() >= exp) {
-          console.error('Token expired');
-          localStorage.removeItem('token');
-          return false;
-        }
-        
-        return { token, payload };
-      } catch (e) {
-        console.error('Error parsing token:', e);
-        localStorage.removeItem('token');
-        return false;
-      }
-    }
-    
-    // Check if user is logged in
-    const tokenData = checkAndHandleToken();
-    
-    if (tokenData) {
-      // Set username in header
-      document.getElementById('headerUsername').textContent = tokenData.payload.username;
-      
-      // Show user menus and hide guest menus
-      document.querySelectorAll('.user-menu').forEach(el => {
-        el.classList.remove('d-none');
+    // Axios nếu được sử dụng
+    if (typeof axios !== 'undefined') {
+      axios.interceptors.request.use(function(config) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log(`[header.js] Axios request to ${config.url} with Authorization header`);
+        return config;
       });
       
-      document.querySelector('.user-dropdown').classList.remove('d-none');
-      
-      document.querySelectorAll('.guest-menu').forEach(el => {
-        el.classList.add('d-none');
+      axios.interceptors.response.use(function(response) {
+        const newToken = response.headers['authorization'];
+        if (newToken && newToken.startsWith('Bearer ')) {
+          const actualToken = newToken.split(' ')[1];
+          if (actualToken !== token) {
+            console.log('[header.js] Updating token from Axios response');
+            localStorage.setItem('token', actualToken);
+          }
+        }
+        return response;
       });
-      
-      // Show admin menu if user is admin
-      if (tokenData.payload.username === 'admin') {
-        document.querySelectorAll('.admin-menu').forEach(el => {
-          el.classList.remove('d-none');
-        });
-      }
-      
-      // Add a global axios interceptor to include token in all requests
-      if (typeof axios !== 'undefined') {
-        axios.interceptors.request.use(function (config) {
-          config.headers.Authorization = `Bearer ${tokenData.token}`;
-          return config;
-        });
-      }
     }
     
-    // Add event listener to logout button
+    console.log('[header.js] Token interceptors set up successfully');
+  }
+  
+  // Xử lý nút logout
+  function setupLogoutButton() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', function(e) {
         e.preventDefault();
+        console.log('[header.js] Logging out...');
         localStorage.removeItem('token');
+        sessionStorage.removeItem('landing_refresh');
         window.location.href = '/auth/login';
       });
     }
-  });
+  }
+  
+  // Cập nhật giao diện dựa trên token
+  function updateUIFromToken() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('[header.js] No token found');
+      return;
+    }
+    
+    try {
+      // Parse token
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.log('[header.js] Invalid token format');
+        localStorage.removeItem('token');
+        return;
+      }
+      
+      const payload = JSON.parse(atob(parts[1]));
+      const exp = payload.exp * 1000;
+      
+      if (Date.now() >= exp) {
+        console.log('[header.js] Token expired');
+        localStorage.removeItem('token');
+        return;
+      }
+      
+      console.log('[header.js] Valid token found, updating UI for user:', payload.username);
+      
+      // Cập nhật tên người dùng
+      const usernameElem = document.getElementById('headerUsername');
+      if (usernameElem) {
+        usernameElem.textContent = payload.username;
+      }
+      
+      // Hiển thị menu người dùng
+      document.querySelectorAll('.user-menu').forEach(el => {
+        el.classList.remove('d-none');
+      });
+      
+      const userDropdown = document.querySelector('.user-dropdown');
+      if (userDropdown) {
+        userDropdown.classList.remove('d-none');
+      }
+      
+      // Ẩn menu khách
+      document.querySelectorAll('.guest-menu').forEach(el => {
+        el.classList.add('d-none');
+      });
+      
+      // Hiển thị menu admin nếu là admin
+      if (payload.username === 'admin') {
+        document.querySelectorAll('.admin-menu').forEach(el => {
+          el.classList.remove('d-none');
+        });
+      }
+    } catch (error) {
+      console.error('[header.js] Error processing token:', error);
+      localStorage.removeItem('token');
+    }
+  }
 </script> 

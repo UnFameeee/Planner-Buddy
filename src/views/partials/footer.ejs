@@ -1,10 +1,37 @@
+<% if (typeof user !== 'undefined' && user) { %>
     </div> <!-- End of main-content -->
   </div> <!-- End of content -->
+<% } else { %>
+  </div> <!-- End of landing-content -->
+<% } %>
   
   <!-- Footer -->
-  <footer class="bg-light text-center text-muted py-3 mt-auto">
+  <footer class="bg-light text-center text-muted py-4 mt-auto">
     <div class="container">
-      &copy; <%= new Date().getFullYear() %> Planner Buddy | All rights reserved
+      <div class="row align-items-center">
+        <div class="col-md-6 text-md-start mb-3 mb-md-0">
+          <span class="fw-bold fs-5" style="color: var(--primary-color);">Planner Buddy</span>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <p class="mb-0">&copy; <%= new Date().getFullYear() %> All rights reserved</p>
+          <p class="mt-1 mb-0"><small>Made with ❤️ by Thangnpq</small></p>
+        </div>
+      </div>
+    </div>
+    <!-- Buy Me a Coffee Button -->
+    <div style="position: fixed; bottom: 20px; right: 20px; transform: scale(0.7);">
+      <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" 
+          data-name="bmc-button" 
+          data-slug="thangnpq" 
+          data-color="#40DCA5" 
+          data-emoji="☕" 
+          data-font="Comic" 
+          data-text="Support me"
+          data-outline-color="#000000" 
+          data-font-color="#ffffff" 
+          data-coffee-color="#FFDD00"
+          data-size="small">
+      </script>
     </div>
   </footer>
   

@@ -2,18 +2,17 @@
 
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-          <h3 class="card-title mb-0">Login</h3>
-        </div>
-        <div class="card-body">
-          <div id="loginAlert" class="alert alert-danger d-none" role="alert"></div>
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-body p-5">
+          <h1 class="text-center mb-4">Login</h1>
+          
+          <div id="alertContainer"></div>
           
           <form id="loginForm">
             <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" required>
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" name="username" required>
             </div>
             
             <div class="mb-3">
@@ -21,13 +20,14 @@
               <input type="password" class="form-control" id="password" name="password" required>
             </div>
             
-            <div class="d-grid gap-2">
+            <div class="d-grid">
               <button type="submit" class="btn btn-primary">Login</button>
             </div>
           </form>
-        </div>
-        <div class="card-footer text-center">
-          <p class="mb-0">Don't have an account? <a href="/auth/register">Register</a></p>
+          
+          <div class="mt-4 text-center">
+            <p>Don't have an account? <a href="/auth/register">Register</a></p>
+          </div>
         </div>
       </div>
     </div>
@@ -36,84 +36,128 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is already logged in (has token)
-    const token = localStorage.getItem('token');
+    console.log('[login.js] Login page loaded');
     
-    // If token exists, redirect to home page
+    // Xóa flag đã dùng để refresh
+    sessionStorage.removeItem('landing_refresh');
+    
+    // Kiểm tra token hiện tại
+    const token = localStorage.getItem('token');
     if (token) {
       try {
-        // Try to decode the token to check if it's expired
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const exp = payload.exp * 1000; // Convert to milliseconds
+        const parts = token.split('.');
+        if (parts.length !== 3) throw new Error('Invalid token format');
+        
+        const payload = JSON.parse(atob(parts[1]));
+        const exp = payload.exp * 1000;
         
         if (Date.now() < exp) {
-          // Token is valid, redirect to home
+          console.log('[login.js] Valid token found, redirecting to home');
           window.location.href = '/';
-          return; // Stop executing rest of script
-        } else {
-          // Token is expired, remove it
-          localStorage.removeItem('token');
-          // Continue with login page
+          return;
         }
-      } catch (e) {
-        // Invalid token format, remove it
+        
+        // Token hết hạn
+        console.log('[login.js] Token expired, removing');
         localStorage.removeItem('token');
-        // Continue with login page
+      } catch (e) {
+        console.error('[login.js] Error processing token:', e);
+        localStorage.removeItem('token');
       }
     }
     
-    // Login form handling
+    // Thiết lập form đăng nhập
+    setupLoginForm();
+  });
+  
+  function setupLoginForm() {
     const loginForm = document.getElementById('loginForm');
-    const loginAlert = document.getElementById('loginAlert');
+    const alertContainer = document.getElementById('alertContainer');
     
-    loginForm.addEventListener('submit', function(e) {
+    if (!loginForm || !alertContainer) {
+      console.error('[login.js] Form elements not found');
+      return;
+    }
+    
+    loginForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      const email = document.getElementById('email').value;
+      // Lấy thông tin đăng nhập
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
       
-      // Clear previous alerts
-      loginAlert.classList.add('d-none');
+      if (!username || !password) {
+        showAlert('warning', 'Please enter both username and password.');
+        return;
+      }
       
-      // Submit login request
-      fetch('/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Store token in local storage
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.innerHTML;
+      
+      try {
+        // Disable nút và hiển thị trạng thái loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging in...';
+        
+        console.log('[login.js] Sending login request for user:', username);
+        
+        // Gửi request đăng nhập
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        console.log('[login.js] Login response status:', response.status);
+        
+        const data = await response.json();
+        console.log('[login.js] Login response data:', data);
+        
+        if (data.success && data.data && data.data.token) {
+          // Lưu token
           localStorage.setItem('token', data.data.token);
-          console.log('Token set in localStorage:', data.data.token);
+          console.log('[login.js] Login successful, token saved');
           
-          // Set token in Authorization header for all subsequent fetch requests
-          const originalFetch = window.fetch;
-          window.fetch = function(url, options = {}) {
-            options = options || {};
-            options.headers = options.headers || {};
-            options.headers['Authorization'] = `Bearer ${data.data.token}`;
-            return originalFetch(url, options);
-          };
+          // Xóa bất kỳ flags refresh nào
+          sessionStorage.removeItem('landing_refresh');
           
-          // Redirect to home page
-          window.location.href = '/';
+          // Hiển thị thông báo thành công
+          showAlert('success', 'Login successful! Redirecting...');
+          
+          // Redirect sau 1 giây
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
         } else {
-          // Show error message
-          loginAlert.textContent = data.message;
-          loginAlert.classList.remove('d-none');
+          // Hiển thị thông báo lỗi
+          showAlert('danger', data.message || 'Invalid username or password');
+          
+          // Reset nút submit
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
         }
-      })
-      .catch(error => {
-        console.error('Login error:', error);
-        loginAlert.textContent = 'An error occurred during login. Please try again.';
-        loginAlert.classList.remove('d-none');
-      });
+      } catch (error) {
+        console.error('[login.js] Error during login:', error);
+        showAlert('danger', 'An error occurred during login. Please try again.');
+        
+        // Reset nút submit
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
     });
-  });
+  }
+  
+  function showAlert(type, message) {
+    const alertContainer = document.getElementById('alertContainer');
+    if (!alertContainer) return;
+    
+    alertContainer.innerHTML = `
+      <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+  }
 </script>
 
 <%- include('../partials/footer') %> 

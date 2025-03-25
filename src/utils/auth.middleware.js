@@ -1,10 +1,10 @@
 const { verifyToken } = require('./auth.util');
 const { User } = require('../database/models');
 
-// Middleware to authenticate JWT token
+// Middleware xác thực JWT token
 const authenticate = async (req, res, next) => {
   try {
-    // Check for token in Authorization header (for API calls)
+    // Kiểm tra token trong header Authorization
     let token = null;
     const authHeader = req.headers.authorization;
     
@@ -12,43 +12,45 @@ const authenticate = async (req, res, next) => {
       token = authHeader.split(' ')[1];
     }
     
-    // If no token in header and it's not an API call, check if it's a view route
-    // For view routes, redirect to login instead of sending JSON error
+    // Nếu không có token, trả về lỗi hoặc chuyển hướng
     if (!token) {
+      // Kiểm tra xem đây có phải là API call không
       const isApiCall = req.path.startsWith('/api') || 
-                        req.xhr || 
-                        req.headers.accept && req.headers.accept.includes('application/json');
+                      req.xhr || 
+                      (req.headers.accept && req.headers.accept.includes('application/json'));
       
-      if (!isApiCall) {
-        return res.redirect('/auth/login');
+      if (isApiCall) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Access denied. No token provided.' 
+        });
       }
       
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Access denied. No token provided.' 
-      });
+      // Đối với route view, chuyển hướng đến trang đăng nhập
+      return res.redirect('/auth/login');
     }
 
+    // Xác thực token
     const decoded = verifyToken(token);
-
     if (!decoded) {
-      // For API calls, return JSON error
-      if (req.xhr || req.headers.accept && req.headers.accept.includes('application/json')) {
+      // Đối với API, trả về lỗi JSON
+      if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))) {
         return res.status(401).json({ 
           success: false, 
           message: 'Invalid token. Please login again.' 
         });
       }
       
-      // For view routes, redirect to login
+      // Đối với route view, chuyển hướng đến trang đăng nhập
       return res.redirect('/auth/login');
     }
 
-    // Find user by id
+    // Tìm người dùng theo ID từ token
     const user = await User.findByPk(decoded.id);
 
+    // Kiểm tra người dùng tồn tại và đang hoạt động
     if (!user || !user.is_active) {
-      if (req.xhr || req.headers.accept && req.headers.accept.includes('application/json')) {
+      if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))) {
         return res.status(401).json({ 
           success: false, 
           message: 'User not found or inactive.' 
@@ -58,7 +60,7 @@ const authenticate = async (req, res, next) => {
       return res.redirect('/auth/login');
     }
 
-    // Set user in request
+    // Đặt thông tin người dùng vào request
     req.user = {
       id: user.id,
       username: user.username,
@@ -71,7 +73,7 @@ const authenticate = async (req, res, next) => {
   } catch (error) {
     console.error('Authentication error:', error);
     
-    if (req.xhr || req.headers.accept && req.headers.accept.includes('application/json')) {
+    if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))) {
       return res.status(500).json({ 
         success: false, 
         message: 'Authentication error.', 
@@ -83,7 +85,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// Middleware to check if user is admin
+// Middleware kiểm tra quyền admin
 const isAdmin = async (req, res, next) => {
   try {
     if (!req.user) {
@@ -93,8 +95,7 @@ const isAdmin = async (req, res, next) => {
       });
     }
 
-    // In a real application, you would check for admin role
-    // Here we're simplifying by checking username
+    // Kiểm tra người dùng có phải admin không
     if (req.user.username !== 'admin') {
       return res.status(403).json({ 
         success: false, 
