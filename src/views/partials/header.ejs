@@ -230,12 +230,8 @@
   <div class="content">
     <div class="sidebar user-menu d-md-block">
       <div class="d-grid gap-2">
-        <a href="/todos/view/create" class="btn btn-primary mb-3">
-          <i class="fas fa-plus"></i> New Todo
-        </a>
-        <a href="/appointments/view/create" class="btn btn-primary mb-3">
-          <i class="fas fa-plus"></i> New Appointment
-        </a>
+        <a href="/todos/create" class="btn btn-primary mb-3">Create Todo</a>
+        <a href="/appointments/create" class="btn btn-primary mb-3">Create Appointment</a>
       </div>
       <hr>
       <h6 class="sidebar-heading text-muted">
@@ -309,23 +305,10 @@
       options.headers = options.headers || {};
       options.headers['Authorization'] = `Bearer ${token}`;
       
-      // Log thông tin request (chỉ log khi gửi đến API)
-      const isApiRequest = typeof url === 'string' && 
-        (url.startsWith('/todos') || url.startsWith('/appointments') || url.startsWith('/auth'));
-      
-      if (isApiRequest) {
-        console.log(`[header.js] Fetch request to ${url} with Authorization header`);
-      }
-      
       return originalFetch(url, options).then(response => {
-        // Kiểm tra và cập nhật token từ response header nếu có
-        const newToken = response.headers.get('Authorization');
-        if (newToken && newToken.startsWith('Bearer ')) {
-          const actualToken = newToken.split(' ')[1];
-          if (actualToken !== token) {
-            console.log('[header.js] Updating token from response');
-            localStorage.setItem('token', actualToken);
-          }
+        if (response.status === 401) {
+          console.log('[header.js] Received 401 response');
+          return response;
         }
         return response;
       });
@@ -336,24 +319,20 @@
       axios.interceptors.request.use(function(config) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
-        console.log(`[header.js] Axios request to ${config.url} with Authorization header`);
         return config;
       });
       
-      axios.interceptors.response.use(function(response) {
-        const newToken = response.headers['authorization'];
-        if (newToken && newToken.startsWith('Bearer ')) {
-          const actualToken = newToken.split(' ')[1];
-          if (actualToken !== token) {
-            console.log('[header.js] Updating token from Axios response');
-            localStorage.setItem('token', actualToken);
+      axios.interceptors.response.use(
+        response => response,
+        error => {
+          if (error.response && error.response.status === 401) {
+            console.log('[header.js] Received 401 response from Axios request');
+            return Promise.reject(error);
           }
+          return Promise.reject(error);
         }
-        return response;
-      });
+      );
     }
-    
-    console.log('[header.js] Token interceptors set up successfully');
   }
   
   // Xử lý nút logout
@@ -364,7 +343,6 @@
         e.preventDefault();
         console.log('[header.js] Logging out...');
         localStorage.removeItem('token');
-        sessionStorage.removeItem('landing_refresh');
         window.location.href = '/auth/login';
       });
     }

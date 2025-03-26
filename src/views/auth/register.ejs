@@ -1,141 +1,59 @@
 <%- include('../partials/header') %>
 
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-          <h3 class="card-title mb-0">Register</h3>
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Create your account
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Or
+        <a href="/auth/login" class="font-medium" style="color: <%= themeColor %>">
+          sign in to your account
+        </a>
+      </p>
+    </div>
+
+    <% if (error) { %>
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <span class="block sm:inline"><%= error %></span>
+      </div>
+    <% } %>
+
+    <form class="mt-8 space-y-6" action="/auth/register" method="POST">
+      <div class="rounded-md shadow-sm -space-y-px">
+        <div>
+          <label for="username" class="sr-only">Username</label>
+          <input id="username" name="username" type="text" required
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-transparent sm:text-sm"
+            style="focus:ring-color: <%= themeColor %>"
+            placeholder="Username">
         </div>
-        <div class="card-body">
-          <div id="registerAlert" class="alert alert-danger d-none" role="alert"></div>
-          
-          <form id="registerForm">
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="confirmPassword" class="form-label">Confirm Password</label>
-              <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="timezone" class="form-label">Timezone</label>
-              <select class="form-select" id="timezone" name="timezone">
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">Eastern Time (ET)</option>
-                <option value="America/Chicago">Central Time (CT)</option>
-                <option value="America/Denver">Mountain Time (MT)</option>
-                <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                <option value="Asia/Singapore">Singapore Time (SGT)</option>
-                <option value="Asia/Tokyo">Japan Standard Time (JST)</option>
-                <option value="Europe/London">Greenwich Mean Time (GMT)</option>
-                <option value="Europe/Paris">Central European Time (CET)</option>
-              </select>
-            </div>
-            
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary">Register</button>
-            </div>
-          </form>
+        <div>
+          <label for="email" class="sr-only">Email address</label>
+          <input id="email" name="email" type="email" required
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-transparent sm:text-sm"
+            style="focus:ring-color: <%= themeColor %>"
+            placeholder="Email address">
         </div>
-        <div class="card-footer text-center">
-          <p class="mb-0">Already have an account? <a href="/auth/login">Login</a></p>
+        <div>
+          <label for="password" class="sr-only">Password</label>
+          <input id="password" name="password" type="password" required
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-transparent sm:text-sm"
+            style="focus:ring-color: <%= themeColor %>"
+            placeholder="Password">
         </div>
       </div>
-    </div>
+
+      <div>
+        <button type="submit"
+          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style="background-color: <%= themeColor %>; focus:ring-color: <%= themeColor %>">
+          Create account
+        </button>
+      </div>
+    </form>
   </div>
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is already logged in (has token)
-    const token = localStorage.getItem('token');
-    
-    // If token exists, redirect to home page
-    if (token) {
-      try {
-        // Try to decode the token to check if it's expired
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const exp = payload.exp * 1000; // Convert to milliseconds
-        
-        if (Date.now() < exp) {
-          // Token is valid, redirect to home
-          window.location.href = '/';
-          return; // Stop executing rest of script
-        } else {
-          // Token is expired, remove it
-          localStorage.removeItem('token');
-          // Continue with register page
-        }
-      } catch (e) {
-        // Invalid token format, remove it
-        localStorage.removeItem('token');
-        // Continue with register page
-      }
-    }
-    
-    // Register form handling
-    const registerForm = document.getElementById('registerForm');
-    const registerAlert = document.getElementById('registerAlert');
-    
-    registerForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const username = document.getElementById('username').value;
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
-      const timezone = document.getElementById('timezone').value;
-      
-      // Clear previous alerts
-      registerAlert.classList.add('d-none');
-      
-      // Validate password match
-      if (password !== confirmPassword) {
-        registerAlert.textContent = 'Passwords do not match';
-        registerAlert.classList.remove('d-none');
-        return;
-      }
-      
-      // Submit registration request
-      fetch('/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, email, password, timezone })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Redirect to login page
-          window.location.href = '/auth/login?registered=true';
-        } else {
-          // Show error message
-          registerAlert.textContent = data.message;
-          registerAlert.classList.remove('d-none');
-        }
-      })
-      .catch(error => {
-        console.error('Registration error:', error);
-        registerAlert.textContent = 'An error occurred during registration. Please try again.';
-        registerAlert.classList.remove('d-none');
-      });
-    });
-  });
-</script>
 
 <%- include('../partials/footer') %> 

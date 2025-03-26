@@ -1,41 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
-const { authenticate } = require('../utils/auth.middleware');
 
-// API Routes
+// Register route
 router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.get('/profile', authenticate, authController.getProfile);
-router.put('/profile', authenticate, authController.updateProfile);
 
-// Thêm endpoint để kiểm tra token
-router.get('/check-token', authenticate, (req, res) => {
-  try {
-    // Middleware authenticate đã xác thực và set req.user
-    console.log('[Auth Routes] Token check passed for user:', req.user.username);
-    return res.status(200).json({
-      success: true,
-      message: 'Token is valid',
-      user: {
-        id: req.user.id,
-        username: req.user.username
-      }
-    });
-  } catch (error) {
-    console.error('[Auth Routes] Error checking token:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error checking token'
-    });
-  }
+// Login route
+router.post('/login', authController.login);
+
+// Get login page
+router.get('/login', (req, res) => {
+  res.render('auth/login', { 
+    title: 'Login | Planner Buddy',
+    themeColor: '#72d1a8',
+    user: null,
+    error: null 
+  });
 });
 
-// View Routes
-router.get('/login', authController.renderLogin);
-router.get('/register', authController.renderRegister);
+// Get register page
+router.get('/register', (req, res) => {
+  res.render('auth/register', { 
+    title: 'Register | Planner Buddy',
+    themeColor: '#72d1a8',
+    user: null,
+    error: null 
+  });
+});
 
-// Test Routes
-router.get('/create-test-user', authController.createTestUser);
+// Logout route
+router.get('/logout', authController.logout);
 
 module.exports = router; 

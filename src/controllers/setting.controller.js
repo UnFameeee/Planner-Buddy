@@ -109,10 +109,51 @@ const renderSettingsPage = async (req, res) => {
   }
 };
 
+// Get theme color
+const getThemeColor = async (req, res) => {
+  try {
+    const themeColor = await settingService.getThemeColor();
+    return res.status(200).json({
+      success: true,
+      data: themeColor
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Update theme color
+const updateThemeColor = async (req, res) => {
+  try {
+    const { color } = req.body;
+    if (!color) {
+      return res.status(400).json({
+        success: false,
+        message: 'Color value is required'
+      });
+    }
+    await settingService.updateSetting('theme_color', color);
+    return res.status(200).json({
+      success: true,
+      message: 'Theme color updated successfully'
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllSettings,
   getSettingByKey,
   updateSetting,
   deleteSetting,
-  renderSettingsPage
+  renderSettingsPage,
+  getThemeColor,
+  updateThemeColor
 }; 

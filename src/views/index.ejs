@@ -23,7 +23,7 @@
       </div>
       <div class="card-footer">
         <a href="/todos/view/all" class="btn btn-sm btn-primary">View All Todos</a>
-        <a href="/todos/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
+        <a href="/todos/create" class="btn btn-sm btn-outline-primary">Add New</a>
       </div>
     </div>
   </div>
@@ -42,7 +42,7 @@
       </div>
       <div class="card-footer">
         <a href="/appointments/view/calendar" class="btn btn-sm btn-primary">View Calendar</a>
-        <a href="/appointments/view/create" class="btn btn-sm btn-outline-primary">Add New</a>
+        <a href="/appointments/create" class="btn btn-sm btn-outline-primary">Add New</a>
       </div>
     </div>
   </div>
@@ -116,135 +116,10 @@
     if (typeof user !== 'undefined' && user) {
       console.log('[index.js] User authenticated by server:', user.username);
       loadDashboardData();
-      // Xóa flag refresh vì đã xác thực thành công
-      sessionStorage.removeItem('landing_refresh');
       return;
     }
     
     console.log('[index.js] Server did not authenticate any user');
-    
-    // Kiểm tra token ở client và redirect một lần duy nhất nếu cần
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.log('[index.js] No token in localStorage, staying on landing page');
-      return;
-    }
-    
-    try {
-      // Xác thực token
-      const parts = token.split('.');
-      if (parts.length !== 3) throw new Error('Invalid token format');
-      
-      const payload = JSON.parse(atob(parts[1]));
-      const exp = payload.exp * 1000;
-      
-      if (Date.now() >= exp) {
-        console.log('[index.js] Token expired, removing');
-        localStorage.removeItem('token');
-        sessionStorage.removeItem('landing_refresh');
-        return;
-      }
-      
-      // Token hợp lệ theo client, nhưng server không xác thực được
-      console.log('[index.js] Found token for user:', payload.username);
-      
-      // Nếu đang ở trang chủ và chưa refresh lần nào
-      if (window.location.pathname === '/' && !sessionStorage.getItem('landing_refresh')) {
-        console.log('[index.js] First attempt to authenticate with server');
-        sessionStorage.setItem('landing_refresh', 'true');
-        
-        // Thử gửi request kiểm tra token
-        fetch('/auth/check-token', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (!data.success) {
-            console.log('[index.js] Token check failed:', data.message);
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('landing_refresh');
-            
-            // Thông báo lỗi nhẹ nhàng
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-warning alert-dismissible fade show';
-            alertDiv.innerHTML = `
-              Your session may have expired. <a href="/auth/login" class="alert-link">Click here to log in</a>.
-              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            // Chèn thông báo vào đầu trang
-            const container = document.querySelector('.container');
-            if (container && container.firstChild) {
-              container.insertBefore(alertDiv, container.firstChild);
-            }
-          } else {
-            console.log('[index.js] Token is valid, reloading for server authentication');
-            // Không xóa token vì nó vẫn hợp lệ
-            window.location.reload();
-          }
-        })
-        .catch(error => {
-          console.error('[index.js] Error checking token:', error);
-        });
-      } else if (sessionStorage.getItem('landing_refresh')) {
-        console.log('[index.js] Second attempt to authenticate');
-        
-        // Đã thử refresh một lần nhưng vẫn không được server xác thực
-        fetch('/auth/check-token', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (!data.success) {
-            console.log('[index.js] Token check failed on second attempt:', data.message);
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('landing_refresh');
-            
-            // Thông báo lỗi nhẹ nhàng
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-warning alert-dismissible fade show';
-            alertDiv.innerHTML = `
-              Your session may have expired. <a href="/auth/login" class="alert-link">Click here to log in</a>.
-              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            // Chèn thông báo vào đầu trang
-            const container = document.querySelector('.container');
-            if (container && container.firstChild) {
-              container.insertBefore(alertDiv, container.firstChild);
-            }
-          } else {
-            console.log('[index.js] Token is still valid but server authentication failed');
-            // Chỉ xóa session storage và giữ nguyên token
-            sessionStorage.removeItem('landing_refresh');
-            // Không tự động redirect về login nữa
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-warning alert-dismissible fade show';
-            alertDiv.innerHTML = `
-              There was an issue with your session. Please try <a href="javascript:window.location.reload()" class="alert-link">refreshing the page</a>.
-              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            // Chèn thông báo vào đầu trang
-            const container = document.querySelector('.container');
-            if (container && container.firstChild) {
-              container.insertBefore(alertDiv, container.firstChild);
-            }
-          }
-        })
-        .catch(error => {
-          console.error('[index.js] Error checking token:', error);
-        });
-      }
-    } catch (e) {
-      console.error('[index.js] Error validating token:', e);
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('landing_refresh');
-    }
   });
   
   // Tải dữ liệu cho dashboard
@@ -258,10 +133,18 @@
   function loadTodos() {
     fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC')
       .then(response => {
-        if (!response.ok) throw new Error('Network response not OK');
+        if (!response.ok) {
+          console.error('[index.js] Error loading todos:', response.status);
+          const todosContainer = document.getElementById('recentTodos');
+          if (todosContainer) {
+            todosContainer.innerHTML = '<p class="text-danger">Error loading todos. Please refresh the page or try again later.</p>';
+          }
+          return;
+        }
         return response.json();
       })
       .then(data => {
+        if (!data) return;
         console.log('[index.js] Todos loaded:', data.data?.todos?.length || 0, 'items');
         const todosContainer = document.getElementById('recentTodos');
         if (!todosContainer) return;
@@ -295,7 +178,7 @@
         console.error('[index.js] Error fetching todos:', error);
         const todosContainer = document.getElementById('recentTodos');
         if (todosContainer) {
-          todosContainer.innerHTML = '<p class="text-danger">Error loading todos</p>';
+          todosContainer.innerHTML = '<p class="text-danger">Error loading todos. Please refresh the page or try again later.</p>';
         }
       });
   }
@@ -304,10 +187,18 @@
   function loadAppointments() {
     fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC')
       .then(response => {
-        if (!response.ok) throw new Error('Network response not OK');
+        if (!response.ok) {
+          console.error('[index.js] Error loading appointments:', response.status);
+          const appointmentsContainer = document.getElementById('upcomingAppointments');
+          if (appointmentsContainer) {
+            appointmentsContainer.innerHTML = '<p class="text-danger">Error loading appointments. Please refresh the page or try again later.</p>';
+          }
+          return;
+        }
         return response.json();
       })
       .then(data => {
+        if (!data) return;
         console.log('[index.js] Appointments loaded:', data.data?.appointments?.length || 0, 'items');
         const appointmentsContainer = document.getElementById('upcomingAppointments');
         if (!appointmentsContainer) return;
@@ -339,7 +230,7 @@
         console.error('[index.js] Error fetching appointments:', error);
         const appointmentsContainer = document.getElementById('upcomingAppointments');
         if (appointmentsContainer) {
-          appointmentsContainer.innerHTML = '<p class="text-danger">Error loading appointments</p>';
+          appointmentsContainer.innerHTML = '<p class="text-danger">Error loading appointments. Please refresh the page or try again later.</p>';
         }
       });
   }

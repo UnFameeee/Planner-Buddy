@@ -1,0 +1,94 @@
+<%- include('./partials/header') %>
+
+<div class="min-h-screen bg-gray-100">
+  <nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex">
+          <div class="flex-shrink-0 flex items-center">
+            <h1 class="text-xl font-bold" style="color: <%= themeColor %>">Planner Buddy</h1>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <span class="text-gray-700 mr-4">Welcome, <%= user.username %></span>
+          <a href="/auth/logout" 
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+            style="background-color: <%= themeColor %>">
+            Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <!-- Todos Section -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-medium text-gray-900">Your Todos</h2>
+              <a href="/todos/create" 
+                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style="background-color: <%= themeColor %>">
+                Add Todo
+              </a>
+            </div>
+            <div class="space-y-4">
+              <% if (user.todos && user.todos.length > 0) { %>
+                <% user.todos.forEach(todo => { %>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        <%= todo.completed ? 'checked' : '' %>>
+                      <span class="ml-3 text-gray-700"><%= todo.title %></span>
+                    </div>
+                    <span class="text-sm text-gray-500">
+                      Due: <%= new Date(todo.due_date).toLocaleDateString() %>
+                    </span>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <p class="text-gray-500">No todos yet. Add one to get started!</p>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appointments Section -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-medium text-gray-900">Your Appointments</h2>
+              <a href="/appointments/create" 
+                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style="background-color: <%= themeColor %>">
+                Add Appointment
+              </a>
+            </div>
+            <div class="space-y-4">
+              <% if (user.appointments && user.appointments.length > 0) { %>
+                <% user.appointments.forEach(appointment => { %>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="text-sm font-medium text-gray-900"><%= appointment.title %></h3>
+                      <p class="text-sm text-gray-500"><%= appointment.description %></p>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      <%= new Date(appointment.start_time).toLocaleString() %>
+                    </div>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <p class="text-gray-500">No appointments scheduled. Add one to get started!</p>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('./partials/footer') %> 
