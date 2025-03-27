@@ -131,9 +131,16 @@
                 const priorityClass = todo.priority === 'high' ? 'danger' : 
                                      todo.priority === 'medium' ? 'warning' : 'success';
                 const statusClass = todo.is_completed ? 'success' : 'secondary';
-                const tags = todo.tags && todo.tags.length > 0 ? 
-                            todo.tags.split(',').map(tag => `<span class="badge bg-info me-1">${tag.trim()}</span>`).join('') : 
-                            'No tags';
+                
+                // Handle tags properly, checking if it's a string, array, or null
+                let tags = 'No tags';
+                if (todo.tags) {
+                  if (typeof todo.tags === 'string') {
+                    tags = todo.tags.split(',').map(tag => `<span class="badge bg-info me-1">${tag.trim()}</span>`).join('');
+                  } else if (Array.isArray(todo.tags)) {
+                    tags = todo.tags.map(tag => `<span class="badge bg-info me-1">${tag.trim()}</span>`).join('');
+                  }
+                }
                 
                 html += `
                   <tr>
@@ -148,9 +155,9 @@
                         <button type="button" class="btn btn-outline-primary toggle-status-btn" data-id="${todo.id}" data-status="${todo.is_completed}">
                           <i class="fas ${todo.is_completed ? 'fa-times' : 'fa-check'}"></i>
                         </button>
-                        <a href="/todos/view/edit/${todo.id}" class="btn btn-outline-secondary">
+                        <button type="button" class="btn btn-outline-secondary edit-btn" data-id="${todo.id}">
                           <i class="fas fa-edit"></i>
-                        </a>
+                        </button>
                         <button type="button" class="btn btn-outline-danger delete-btn" data-id="${todo.id}">
                           <i class="fas fa-trash"></i>
                         </button>
@@ -306,6 +313,15 @@
               alert('Error deleting todo');
             });
           }
+        });
+      });
+      
+      // Edit buttons
+      const editBtns = document.querySelectorAll('.edit-btn');
+      editBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const todoId = this.getAttribute('data-id');
+          window.location.href = `/todos/edit/${todoId}`;
         });
       });
     }
