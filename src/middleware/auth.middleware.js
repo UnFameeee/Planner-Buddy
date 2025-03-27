@@ -23,6 +23,7 @@ const authenticate = async (req, res, next) => {
         // Store the URL they were trying to access
         req.session.returnTo = req.originalUrl;
         req.authError = 'Please log in to continue.';
+        req.user = null; // Explicitly set user to null
         return next();
       }
       

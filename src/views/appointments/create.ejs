@@ -3,7 +3,7 @@
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3">Create New Appointment</h1>
-    <a href="/appointments/view/calendar" class="btn btn-secondary">
+    <a href="/appointments/calendar" class="btn btn-secondary">
       <i class="fas fa-arrow-left"></i> Back to Calendar
     </a>
   </div>
@@ -95,7 +95,7 @@
           </div>
           
           <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-            <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/appointments/view/calendar'">Cancel</button>
+            <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/appointments/calendar'">Cancel</button>
             <button type="submit" class="btn btn-primary">Create Appointment</button>
           </div>
         </form>
@@ -160,8 +160,8 @@
         const response = await axios.post('/appointments', formData);
         
         if (response.data.success) {
-          // Redirect to calendar
-          window.location.href = '/appointments/view/calendar';
+          // Redirect to calendar with view parameter
+          window.location.href = '/appointments/calendar?view=month';
         } else {
           // Show error
           alert(response.data.message || 'Something went wrong. Please try again.');

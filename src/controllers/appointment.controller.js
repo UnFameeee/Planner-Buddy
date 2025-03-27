@@ -219,7 +219,7 @@ const renderAppointmentsPage = async (req, res) => {
     
     // If authentication failed but we're still here
     if (!req.user) {
-      return res.render('appointments/index', {
+      return res.render('appointments/calendar', {
         title: `Appointments | ${appName}`,
         themeColor,
         user: null,
@@ -228,7 +228,7 @@ const renderAppointmentsPage = async (req, res) => {
       });
     }
     
-    res.render('appointments/index', {
+    res.render('appointments/calendar', {
       title: `Appointments | ${appName}`,
       themeColor,
       user: req.user,

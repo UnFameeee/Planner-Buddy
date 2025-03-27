@@ -2,9 +2,10 @@
   document.addEventListener('DOMContentLoaded', function() {
     const token = localStorage.getItem('token');
     
+    // Don't redirect if no token, auth middleware will handle that
     if (!token) {
-      window.location.href = '/auth/login';
-      return;
+      console.warn('No authentication token found');
+      // Continue without redirecting - the auth middleware will handle this
     }
     
     // Elements
@@ -41,11 +42,15 @@
     
     // Current state
     let currentDate = new Date();
-    let currentView = 'month';
+    // Set initial view based on server-side parameter (passed via global variable)
+    let currentView = window.initialCalendarView || 'month';
     let appointments = [];
     
     // Initialize calendar
     function initCalendar() {
+      // Set the initial view UI before loading appointments
+      setView(currentView, false); // false = don't reload appointments yet
+      
       loadAppointments();
       
       // Set up event listeners
@@ -93,6 +98,13 @@
       const formattedStartDate = formatDateForAPI(startDate);
       const formattedEndDate = formatDateForAPI(endDate);
       
+      // If no token, just render empty calendar
+      if (!token) {
+        appointments = [];
+        renderCalendar();
+        return;
+      }
+      
       // Fetch appointments for the given date range
       fetch(`/appointments?startDate=${formattedStartDate}&endDate=${formattedEndDate}`, {
         headers: {
@@ -116,6 +128,16 @@
     
     // Load upcoming appointments
     function loadUpcomingAppointments() {
+      // If no token, just show no appointments message
+      if (!token) {
+        upcomingList.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center">Please log in to view appointments</td>
+          </tr>
+        `;
+        return;
+      }
+      
       fetch('/appointments/upcoming', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -201,7 +223,7 @@
     }
     
     // Set current view (month, week, day)
-    function setView(view) {
+    function setView(view, reloadData = true) {
       currentView = view;
       
       // Update UI
@@ -222,8 +244,10 @@
         dayViewBtn.classList.add('active');
       }
       
-      // Reload appointments for the new view
-      loadAppointments();
+      // Reload appointments for the new view if requested
+      if (reloadData) {
+        loadAppointments();
+      }
     }
     
     // Navigation functions
@@ -587,30 +611,24 @@
       }
     }
     
-    // Helper function to get the first day of the week
-    function getFirstDayOfWeek(date) {
-      const day = date.getDay();
-      const diff = date.getDate() - day;
-      return new Date(date.getFullYear(), date.getMonth(), diff);
-    }
-    
-    // Helper function to format date for API
-    function formatDateForAPI(date) {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    }
-    
-    // Helper function to check if two dates are the same day
+    // Function to check if two dates are the same day
     function isSameDay(date1, date2) {
-      return date1.getDate() === date2.getDate() &&
+      return date1.getFullYear() === date2.getFullYear() &&
              date1.getMonth() === date2.getMonth() &&
-             date1.getFullYear() === date2.getFullYear();
+             date1.getDate() === date2.getDate();
     }
     
-    // Helper function to get color class based on appointment type
+    // Utility function to format date for API
+    function formatDateForAPI(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Get appointment color class based on type
     function getAppointmentColorClass(type) {
-      if (!type) return 'primary';
-      
-      switch (type.toLowerCase()) {
+      switch (type) {
         case 'meeting':
           return 'primary';
         case 'personal':
@@ -622,6 +640,13 @@
         default:
           return 'info';
       }
+    }
+    
+    // Get first day of the week (Sunday) for a given date
+    function getFirstDayOfWeek(date) {
+      const day = date.getDay();
+      const diff = date.getDate() - day;
+      return new Date(date.setDate(diff));
     }
     
     // Initialize the calendar

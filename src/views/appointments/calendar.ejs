@@ -1,5 +1,10 @@
 <%- include('../partials/header') %>
 
+<% 
+// Pass initial view parameter to client-side script
+const initialView = typeof view !== 'undefined' ? view : 'month';
+%>
+
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3">Appointment Calendar</h1>
@@ -262,4 +267,10 @@
 </style>
 
 <%- include('../partials/footer') %>
+
+<!-- Include the script with the view parameter -->
+<script>
+  // Pass the view parameter to be used in the calendar script
+  window.initialCalendarView = '<%= initialView %>';
+</script>
 <%- include('./calendar-script') %> 
