@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const settingService = require('./services/setting.service');
 const { User } = require('./database/models');
-const { authenticateToken, requireAuth } = require('./middleware/auth.middleware');
+const { authenticate } = require('./middleware/auth.middleware');
 
 // Basic middleware
 app.use(express.json());
@@ -22,7 +22,10 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
-app.use(express.static(path.join(__dirname, '../assets')));
+
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, '../assets')));
 
 // View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -33,14 +36,6 @@ const todoRoutes = require('./routes/todo.routes');
 const appointmentRoutes = require('./routes/appointment.routes');
 const settingRoutes = require('./routes/setting.routes');
 const authRoutes = require('./routes/auth.routes');
-
-// Authentication middleware - apply to all routes except public ones
-app.use((req, res, next) => {
-  if (req.path.startsWith('/auth/') || req.path === '/') {
-    return next();
-  }
-  authenticateToken(req, res, next);
-});
 
 // Public routes (no auth required)
 app.use('/auth', authRoutes);
@@ -56,7 +51,8 @@ app.get('/', async (req, res) => {
       console.error('Error getting theme color:', error);
     }
     
-    if (req.user) {
+    // If user is authenticated, redirect to dashboard
+    if (req.cookies.token) {
       return res.redirect('/dashboard');
     }
     
@@ -71,13 +67,13 @@ app.get('/', async (req, res) => {
   }
 });
 
-// Protected routes
-app.use('/todos', requireAuth, todoRoutes);
-app.use('/appointments', requireAuth, appointmentRoutes);
-app.use('/settings', requireAuth, settingRoutes);
+// Apply authentication to routes but allow them to continue even if authentication fails
+app.use('/todos', authenticate, todoRoutes);
+app.use('/appointments', authenticate, appointmentRoutes);
+app.use('/settings', authenticate, settingRoutes);
 
-// Dashboard route (protected)
-app.get('/dashboard', requireAuth, async (req, res) => {
+// Dashboard route (modified to not require authentication)
+app.get('/dashboard', authenticate, async (req, res) => {
   try {
     // Get theme color from settings
     let themeColor = '#72d1a8';
@@ -85,6 +81,16 @@ app.get('/dashboard', requireAuth, async (req, res) => {
       themeColor = await settingService.getThemeColor();
     } catch (error) {
       console.error('Error getting theme color:', error);
+    }
+
+    // If authentication failed but we're still here (due to our modified middleware)
+    if (!req.user) {
+      return res.render('dashboard', {
+        title: 'Dashboard | Planner Buddy',
+        themeColor,
+        user: null,
+        error: req.authError || 'Authentication required'
+      });
     }
 
     // Get user with todos and appointments

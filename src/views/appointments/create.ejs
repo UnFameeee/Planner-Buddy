@@ -8,230 +8,198 @@
     </a>
   </div>
   
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <%= error %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+  
   <div class="card shadow mb-4">
     <div class="card-header py-3">
       <h6 class="m-0 fw-bold text-primary">Appointment Information</h6>
     </div>
     <div class="card-body">
-      <form id="createAppointmentForm">
-        <div class="mb-3">
-          <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" id="title" name="title" required>
-          <div class="invalid-feedback">Title is required</div>
-        </div>
-        
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="appointmentDate" class="form-label">Date and Time <span class="text-danger">*</span></label>
-            <input type="datetime-local" class="form-control" id="appointmentDate" name="appointmentDate" required>
-            <div class="invalid-feedback">Date and time are required</div>
+      <% if (user) { %>
+        <form id="createAppointmentForm">
+          <div class="mb-3">
+            <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="title" name="title" required>
+            <div class="invalid-feedback">Title is required</div>
           </div>
           
-          <div class="col-md-6">
-            <label for="duration" class="form-label">Duration (minutes)</label>
-            <input type="number" class="form-control" id="duration" name="duration" min="15" step="15" value="60">
-            <div class="form-text">Default is 60 minutes</div>
-          </div>
-        </div>
-        
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="appointmentType" class="form-label">Type</label>
-            <select class="form-select" id="appointmentType" name="appointmentType">
-              <option value="">Select type</option>
-              <option value="meeting">Meeting</option>
-              <option value="personal">Personal</option>
-              <option value="medical">Medical</option>
-              <option value="reminder">Reminder</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          
-          <div class="col-md-6">
-            <label for="location" class="form-label">Location</label>
-            <input type="text" class="form-control" id="location" name="location" placeholder="Where the appointment will take place">
-          </div>
-        </div>
-        
-        <div class="mb-3">
-          <label for="notes" class="form-label">Notes</label>
-          <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional details about the appointment"></textarea>
-        </div>
-        
-        <div class="mb-3 form-check">
-          <input type="checkbox" class="form-check-input" id="reminderEnabled" name="reminderEnabled">
-          <label class="form-check-label" for="reminderEnabled">Set Reminder</label>
-        </div>
-        
-        <div id="reminderOptions" class="mb-3 ps-4 border-start" style="display: none;">
-          <div class="row">
+          <div class="row mb-3">
             <div class="col-md-6">
-              <label for="reminderTime" class="form-label">Remind me</label>
-              <select class="form-select" id="reminderTime" name="reminderTime">
-                <option value="15">15 minutes before</option>
-                <option value="30">30 minutes before</option>
-                <option value="60" selected>1 hour before</option>
-                <option value="120">2 hours before</option>
-                <option value="1440">1 day before</option>
+              <label for="startTime" class="form-label">Start Time <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" id="startTime" name="startTime" required>
+              <div class="invalid-feedback">Start time is required</div>
+            </div>
+            
+            <div class="col-md-6">
+              <label for="endTime" class="form-label">End Time <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" id="endTime" name="endTime" required>
+              <div class="invalid-feedback">End time is required</div>
+            </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="appointmentType" class="form-label">Type</label>
+              <select class="form-select" id="appointmentType" name="appointmentType">
+                <option value="">Select type</option>
+                <option value="meeting">Meeting</option>
+                <option value="personal">Personal</option>
+                <option value="medical">Medical</option>
+                <option value="reminder">Reminder</option>
+                <option value="other">Other</option>
               </select>
             </div>
             
             <div class="col-md-6">
-              <label for="reminderMethod" class="form-label">Reminder method</label>
-              <select class="form-select" id="reminderMethod" name="reminderMethod">
-                <option value="email">Email</option>
-                <option value="notification">In-app notification</option>
-              </select>
+              <label for="location" class="form-label">Location</label>
+              <input type="text" class="form-control" id="location" name="location" placeholder="Where the appointment will take place">
             </div>
           </div>
+          
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Additional details about the appointment"></textarea>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="reminderEnabled" name="reminderEnabled">
+            <label class="form-check-label" for="reminderEnabled">Set Reminder</label>
+          </div>
+          
+          <div id="reminderOptions" class="mb-3 ps-4 border-start" style="display: none;">
+            <div class="row">
+              <div class="col-md-6">
+                <label for="reminderTime" class="form-label">Remind me</label>
+                <select class="form-select" id="reminderTime" name="reminderTime">
+                  <option value="15">15 minutes before</option>
+                  <option value="30">30 minutes before</option>
+                  <option value="60" selected>1 hour before</option>
+                  <option value="120">2 hours before</option>
+                  <option value="1440">1 day before</option>
+                </select>
+              </div>
+              
+              <div class="col-md-6">
+                <label for="reminderMethod" class="form-label">Reminder method</label>
+                <select class="form-select" id="reminderMethod" name="reminderMethod">
+                  <option value="email">Email</option>
+                  <option value="notification">In-app notification</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/appointments/view/calendar'">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Appointment</button>
+          </div>
+        </form>
+      <% } else { %>
+        <div class="alert alert-warning">
+          <p class="mb-0">You need to be logged in to create appointments.</p>
+          <a href="/auth/login" class="alert-link">Login here</a> to continue.
         </div>
-        
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-          <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/appointments/view/calendar'">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Appointment</button>
-        </div>
-      </form>
+      <% } %>
     </div>
   </div>
 </div>
 
+<% if (user) { %>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const token = localStorage.getItem('token');
+    // Show/hide reminder options based on checkbox
+    const reminderEnabledCheckbox = document.getElementById('reminderEnabled');
+    const reminderOptionsDiv = document.getElementById('reminderOptions');
     
-    if (!token) {
-      window.location.href = '/auth/login';
-      return;
-    }
-    
-    const createAppointmentForm = document.getElementById('createAppointmentForm');
-    const reminderEnabled = document.getElementById('reminderEnabled');
-    const reminderOptions = document.getElementById('reminderOptions');
-    
-    // Set default date and time
-    const now = new Date();
-    now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15); // Round to next 15 minutes
-    const formattedDate = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
-    document.getElementById('appointmentDate').value = formattedDate;
-    
-    // Toggle reminder options
-    reminderEnabled.addEventListener('change', function() {
-      reminderOptions.style.display = this.checked ? 'block' : 'none';
+    reminderEnabledCheckbox.addEventListener('change', function() {
+      reminderOptionsDiv.style.display = this.checked ? 'block' : 'none';
     });
     
-    createAppointmentForm.addEventListener('submit', function(e) {
+    // Form submission
+    const form = document.getElementById('createAppointmentForm');
+    
+    form.addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      // Clear previous validation
-      clearValidation();
-      
       // Validate form
-      if (!validateForm()) {
+      if (!form.checkValidity()) {
+        e.stopPropagation();
+        form.classList.add('was-validated');
         return;
       }
       
-      // Collect form data
-      const appointmentData = {
-        title: document.getElementById('title').value.trim(),
-        appointment_date: new Date(document.getElementById('appointmentDate').value).toISOString(),
-        duration: parseInt(document.getElementById('duration').value),
+      // Get form data
+      const formData = {
+        title: document.getElementById('title').value,
+        start_time: document.getElementById('startTime').value,
+        end_time: document.getElementById('endTime').value,
         appointment_type: document.getElementById('appointmentType').value,
-        location: document.getElementById('location').value.trim(),
-        notes: document.getElementById('notes').value.trim()
+        location: document.getElementById('location').value,
+        description: document.getElementById('description').value
       };
       
-      // Add reminder if enabled
-      if (reminderEnabled.checked) {
-        appointmentData.reminder = {
-          time: parseInt(document.getElementById('reminderTime').value),
-          method: document.getElementById('reminderMethod').value
-        };
+      // Add reminder data if enabled
+      if (document.getElementById('reminderEnabled').checked) {
+        formData.reminder_time = document.getElementById('reminderTime').value;
+        formData.reminder_method = document.getElementById('reminderMethod').value;
       }
       
-      // Create appointment
-      fetch('/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(appointmentData)
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
+      try {
+        // Show loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+        
+        // Send API request
+        const response = await axios.post('/appointments', formData);
+        
+        if (response.data.success) {
           // Redirect to calendar
           window.location.href = '/appointments/view/calendar';
         } else {
           // Show error
-          showError(data.message);
+          alert(response.data.message || 'Something went wrong. Please try again.');
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error creating appointment:', error);
-        showError('An error occurred while creating the appointment. Please try again.');
-      });
+        alert(error.response?.data?.message || 'Error creating appointment. Please try again.');
+        
+        // Reset button state
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Create Appointment';
+      }
     });
     
-    // Function to validate form
-    function validateForm() {
-      let isValid = true;
-      
-      // Validate title
-      const title = document.getElementById('title');
-      if (!title.value.trim()) {
-        title.classList.add('is-invalid');
-        isValid = false;
+    // Auto-set end time 1 hour after start time when start time changes
+    const startTimeInput = document.getElementById('startTime');
+    const endTimeInput = document.getElementById('endTime');
+    
+    startTimeInput.addEventListener('change', function() {
+      if (this.value) {
+        const startDateTime = new Date(this.value);
+        const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+        
+        // Format for datetime-local input
+        const year = endDateTime.getFullYear();
+        const month = String(endDateTime.getMonth() + 1).padStart(2, '0');
+        const day = String(endDateTime.getDate()).padStart(2, '0');
+        const hours = String(endDateTime.getHours()).padStart(2, '0');
+        const minutes = String(endDateTime.getMinutes()).padStart(2, '0');
+        
+        endTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
       }
-      
-      // Validate appointment date
-      const appointmentDate = document.getElementById('appointmentDate');
-      if (!appointmentDate.value) {
-        appointmentDate.classList.add('is-invalid');
-        isValid = false;
-      }
-      
-      return isValid;
-    }
-    
-    // Function to clear validation
-    function clearValidation() {
-      const invalidInputs = document.querySelectorAll('.is-invalid');
-      invalidInputs.forEach(input => {
-        input.classList.remove('is-invalid');
-      });
-      
-      // Remove alert if exists
-      const alertElement = document.querySelector('.alert');
-      if (alertElement) {
-        alertElement.remove();
-      }
-    }
-    
-    // Function to show error
-    function showError(message) {
-      // Create alert
-      const alert = document.createElement('div');
-      alert.className = 'alert alert-danger alert-dismissible fade show mt-3';
-      alert.role = 'alert';
-      alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      `;
-      
-      // Insert alert before form
-      createAppointmentForm.insertAdjacentElement('beforebegin', alert);
-    }
-    
-    // Add event listeners to fields for validation on input
-    document.getElementById('title').addEventListener('input', function() {
-      this.classList.remove('is-invalid');
-    });
-    
-    document.getElementById('appointmentDate').addEventListener('input', function() {
-      this.classList.remove('is-invalid');
     });
   });
 </script>
+<% } %>
 
 <%- include('../partials/footer') %> 
