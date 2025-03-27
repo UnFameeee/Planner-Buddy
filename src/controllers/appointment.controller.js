@@ -217,6 +217,17 @@ const renderAppointmentsPage = async (req, res) => {
     const themeColor = await settingService.getThemeColor();
     const appName = await settingService.getAppName();
     
+    // If authentication failed but we're still here
+    if (!req.user) {
+      return res.render('appointments/index', {
+        title: `Appointments | ${appName}`,
+        themeColor,
+        user: null,
+        view: req.query.view || 'month',
+        error: req.authError || 'Authentication required'
+      });
+    }
+    
     res.render('appointments/index', {
       title: `Appointments | ${appName}`,
       themeColor,
@@ -237,6 +248,16 @@ const renderCreateAppointmentPage = async (req, res) => {
     const themeColor = await settingService.getThemeColor();
     const appName = await settingService.getAppName();
     
+    // If authentication failed but we're still here
+    if (!req.user) {
+      return res.render('appointments/create', {
+        title: `Create Appointment | ${appName}`,
+        themeColor,
+        user: null,
+        error: req.authError || 'Authentication required'
+      });
+    }
+    
     res.render('appointments/create', {
       title: `Create Appointment | ${appName}`,
       themeColor,
@@ -253,10 +274,22 @@ const renderCreateAppointmentPage = async (req, res) => {
 // Render edit appointment page
 const renderEditAppointmentPage = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const appointmentId = req.params.id;
     const themeColor = await settingService.getThemeColor();
     const appName = await settingService.getAppName();
+    
+    // If authentication failed but we're still here
+    if (!req.user) {
+      return res.render('appointments/edit', {
+        title: `Edit Appointment | ${appName}`,
+        themeColor,
+        user: null,
+        error: req.authError || 'Authentication required',
+        appointment: null
+      });
+    }
+    
+    const userId = req.user.id;
+    const appointmentId = req.params.id;
     
     // Get appointment
     const appointment = await appointmentService.getAppointmentById(appointmentId, userId);

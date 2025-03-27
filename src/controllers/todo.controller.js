@@ -156,6 +156,16 @@ const renderTodosPage = async (req, res) => {
     const themeColor = await settingService.getThemeColor();
     const appName = await settingService.getAppName();
     
+    // If authentication failed but we're still here
+    if (!req.user) {
+      return res.render('todos/index', {
+        title: `Todos | ${appName}`,
+        themeColor,
+        user: null,
+        error: req.authError || 'Authentication required'
+      });
+    }
+    
     res.render('todos/index', {
       title: `Todos | ${appName}`,
       themeColor,
@@ -175,6 +185,16 @@ const renderCreateTodoPage = async (req, res) => {
     const themeColor = await settingService.getThemeColor();
     const appName = await settingService.getAppName();
     
+    // If authentication failed but we're still here
+    if (!req.user) {
+      return res.render('todos/create', {
+        title: `Create Todo | ${appName}`,
+        themeColor,
+        user: null,
+        error: req.authError || 'Authentication required'
+      });
+    }
+    
     res.render('todos/create', {
       title: `Create Todo | ${appName}`,
       themeColor,
@@ -191,10 +211,22 @@ const renderCreateTodoPage = async (req, res) => {
 // Render edit todo page
 const renderEditTodoPage = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const todoId = req.params.id;
     const themeColor = await settingService.getThemeColor();
     const appName = await settingService.getAppName();
+    
+    // If authentication failed but we're still here
+    if (!req.user) {
+      return res.render('todos/edit', {
+        title: `Edit Todo | ${appName}`,
+        themeColor,
+        user: null,
+        error: req.authError || 'Authentication required',
+        todo: null
+      });
+    }
+    
+    const userId = req.user.id;
+    const todoId = req.params.id;
     
     // Get todo
     const todo = await todoService.getTodoById(todoId, userId);

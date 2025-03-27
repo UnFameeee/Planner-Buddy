@@ -1,59 +1,117 @@
-<%- include('../partials/header') %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container">
+    <div class="row justify-content-center mt-5">
+      <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+          <div class="card-body">
+            <h2 class="text-center mb-4">Register</h2>
+            
+            <% if (typeof error !== 'undefined' && error) { %>
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            <% } %>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8">
-    <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-        Create your account
-      </h2>
-      <p class="mt-2 text-center text-sm text-gray-600">
-        Or
-        <a href="/auth/login" class="font-medium" style="color: <%= themeColor %>">
-          sign in to your account
-        </a>
-      </p>
+            <% if (typeof success !== 'undefined' && success) { %>
+              <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            <% } %>
+
+            <form id="registerForm">
+              <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+              </div>
+              <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+              </div>
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+              </div>
+              <div class="mb-3">
+                <label for="timezone" class="form-label">Timezone</label>
+                <select class="form-select" id="timezone" name="timezone" required>
+                  <option value="UTC">UTC</option>
+                  <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh</option>
+                  <!-- Add more timezone options as needed -->
+                </select>
+              </div>
+              <button type="submit" class="btn w-100" style="background-color: <%= themeColor %>; color: white;">Register</button>
+            </form>
+            <div class="text-center mt-3">
+              <p>Already have an account? <a href="/auth/login" style="color: <%= themeColor %>">Login</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <% if (error) { %>
-      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-        <span class="block sm:inline"><%= error %></span>
-      </div>
-    <% } %>
-
-    <form class="mt-8 space-y-6" action="/auth/register" method="POST">
-      <div class="rounded-md shadow-sm -space-y-px">
-        <div>
-          <label for="username" class="sr-only">Username</label>
-          <input id="username" name="username" type="text" required
-            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-transparent sm:text-sm"
-            style="focus:ring-color: <%= themeColor %>"
-            placeholder="Username">
-        </div>
-        <div>
-          <label for="email" class="sr-only">Email address</label>
-          <input id="email" name="email" type="email" required
-            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-transparent sm:text-sm"
-            style="focus:ring-color: <%= themeColor %>"
-            placeholder="Email address">
-        </div>
-        <div>
-          <label for="password" class="sr-only">Password</label>
-          <input id="password" name="password" type="password" required
-            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-transparent sm:text-sm"
-            style="focus:ring-color: <%= themeColor %>"
-            placeholder="Password">
-        </div>
-      </div>
-
-      <div>
-        <button type="submit"
-          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
-          style="background-color: <%= themeColor %>; focus:ring-color: <%= themeColor %>">
-          Create account
-        </button>
-      </div>
-    </form>
   </div>
-</div>
 
-<%- include('../partials/footer') %> 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/js/auth.service.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const registerForm = document.getElementById('registerForm');
+      
+      registerForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const timezone = document.getElementById('timezone').value;
+
+        if (!username || !email || !password) {
+          showAlert('warning', 'Please fill in all required fields.');
+          return;
+        }
+
+        const submitBtn = registerForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+
+        try {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registering...';
+
+          const response = await authService.register({
+            username,
+            email,
+            password,
+            timezone
+          });
+          
+          // Redirect to dashboard on success
+          window.location.href = '/dashboard';
+        } catch (error) {
+          const message = error.message || 'An error occurred during registration.';
+          const alertDiv = document.createElement('div');
+          alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+          alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+          registerForm.insertAdjacentElement('beforebegin', alertDiv);
+          
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

@@ -1,34 +1,47 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/auth.controller');
+const { register, login, logout, getCurrentUser } = require('../controllers/auth.controller');
+const { authenticate } = require('../middleware/auth.middleware');
+const settingService = require('../services/setting.service');
 
-// Register route
-router.post('/register', authController.register);
+// Helper function to get theme color
+const getThemeColor = async () => {
+  try {
+    return await settingService.getThemeColor();
+  } catch (error) {
+    console.error('Error getting theme color:', error);
+    return '#72d1a8';
+  }
+};
 
-// Login route
-router.post('/login', authController.login);
-
-// Get login page
-router.get('/login', (req, res) => {
-  res.render('auth/login', { 
+// Public routes
+router.get('/login', async (req, res) => {
+  const themeColor = await getThemeColor();
+  res.render('auth/login', {
     title: 'Login | Planner Buddy',
-    themeColor: '#72d1a8',
+    themeColor,
     user: null,
-    error: null 
+    error: req.query.error || null,
+    success: req.query.success || null
   });
 });
 
-// Get register page
-router.get('/register', (req, res) => {
-  res.render('auth/register', { 
+router.get('/register', async (req, res) => {
+  const themeColor = await getThemeColor();
+  res.render('auth/register', {
     title: 'Register | Planner Buddy',
-    themeColor: '#72d1a8',
+    themeColor,
     user: null,
-    error: null 
+    error: req.query.error || null,
+    success: req.query.success || null
   });
 });
 
-// Logout route
-router.get('/logout', authController.logout);
+router.post('/register', register);
+router.post('/login', login);
+router.get('/logout', logout);
+
+// Protected routes
+router.get('/me', authenticate, getCurrentUser);
 
 module.exports = router; 
