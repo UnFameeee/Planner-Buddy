@@ -8,13 +8,19 @@
   <link href="/css/styles.css" rel="stylesheet">
 </head>
 <body class="bg-light">
+  <%- include('../partials/auth-header') %>
+
   <div class="container">
-    <div class="row justify-content-center mt-5">
-      <div class="col-md-6 col-lg-4">
-        <div class="card shadow">
-          <div class="card-body">
-            <h2 class="text-center mb-4">Login</h2>
-            
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+              <i class="fas fa-user-circle fa-3x mb-3" style="color: var(--primary-color);"></i>
+              <h2 class="fw-bold">Welcome Back!</h2>
+              <p class="text-muted">Please login to your account</p>
+            </div>
+
             <% if (typeof error !== 'undefined' && error) { %>
               <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <%= error %>
@@ -29,20 +35,55 @@
               </div>
             <% } %>
 
-            <form id="loginForm">
-              <div class="mb-3">
+            <form id="loginForm" class="needs-validation" novalidate>
+              <div class="mb-4">
                 <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-user text-muted"></i>
+                  </span>
+                  <input type="text" class="form-control border-start-0" id="username" name="username" required>
+                </div>
+                <div class="invalid-feedback">Please enter your username.</div>
               </div>
-              <div class="mb-3">
+
+              <div class="mb-4">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-lock text-muted"></i>
+                  </span>
+                  <input type="password" class="form-control border-start-0" id="password" name="password" required>
+                  <button class="btn btn-outline-secondary border border-start-0" type="button" id="togglePassword">
+                    <i class="far fa-eye"></i>
+                  </button>
+                </div>
+                <div class="invalid-feedback">Please enter your password.</div>
               </div>
-              <button type="submit" class="btn w-100" style="background-color: <%= themeColor %>; color: white;">Login</button>
+
+              <div class="mb-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="rememberMe">
+                  <label class="form-check-label text-muted" for="rememberMe">
+                    Remember me
+                  </label>
+                </div>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="fas fa-sign-in-alt me-2"></i>
+                  Login
+                </button>
+              </div>
+
+              <div class="text-center mt-4">
+                <p class="text-muted mb-0">
+                  Don't have an account? 
+                  <a href="/auth/register" class="text-primary fw-bold">Register</a>
+                </p>
+              </div>
             </form>
-            <div class="text-center mt-3">
-              <p>Don't have an account? <a href="/auth/register" style="color: <%= themeColor %>">Register</a></p>
-            </div>
           </div>
         </div>
       </div>
@@ -54,45 +95,59 @@
   <script src="/js/auth.service.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const loginForm = document.getElementById('loginForm');
+      const form = document.getElementById('loginForm');
+      const togglePassword = document.getElementById('togglePassword');
+      const password = document.getElementById('password');
       
-      loginForm.addEventListener('submit', async function(e) {
+      // Toggle password visibility
+      togglePassword.addEventListener('click', function() {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.querySelector('i').classList.toggle('fa-eye');
+        this.querySelector('i').classList.toggle('fa-eye-slash');
+      });
+      
+      // Form submission
+      form.addEventListener('submit', async function(e) {
         e.preventDefault();
-
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-
-        if (!username || !password) {
-          showAlert('warning', 'Please enter both username and password.');
+        
+        if (!form.checkValidity()) {
+          e.stopPropagation();
+          form.classList.add('was-validated');
           return;
         }
-
-        const submitBtn = loginForm.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
         try {
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging in...';
-
-          const response = await authService.login({ username, password });
+          const response = await fetch('/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+          });
           
-          // Redirect to dashboard on success
-          window.location.href = '/dashboard';
+          const data = await response.json();
+          
+          if (data.success) {
+            // Store token
+            localStorage.setItem('token', data.token);
+            
+            // Redirect to dashboard
+            window.location.href = '/dashboard';
+          } else {
+            alert(data.message || 'Login failed. Please try again.');
+          }
         } catch (error) {
-          const message = error.message || 'An error occurred during login.';
-          const alertDiv = document.createElement('div');
-          alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
-          alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          `;
-          loginForm.insertAdjacentElement('beforebegin', alertDiv);
-          
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalBtnText;
+          console.error('Login error:', error);
+          alert('An error occurred. Please try again.');
         }
       });
     });
   </script>
+
+  <%- include('../partials/auth-footer') %>
 </body>
 </html> 

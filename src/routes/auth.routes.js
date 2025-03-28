@@ -21,6 +21,7 @@ router.get('/login', async (req, res) => {
     title: 'Login | Planner Buddy',
     themeColor,
     user: null,
+    path: req.path,
     error: req.query.error || null,
     success: req.query.success || null
   });
@@ -32,6 +33,7 @@ router.get('/register', async (req, res) => {
     title: 'Register | Planner Buddy',
     themeColor,
     user: null,
+    path: req.path,
     error: req.query.error || null,
     success: req.query.success || null
   });
