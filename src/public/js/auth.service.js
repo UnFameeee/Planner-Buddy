@@ -72,7 +72,12 @@ class AuthService {
   // Register new user
   async register(userData) {
     try {
-      const response = await axios.post('/auth/register', userData);
+      const response = await axios.post('/auth/register', userData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
       if (response.data.success) {
         this.setToken(response.data.data.token);
       }
