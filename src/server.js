@@ -8,6 +8,8 @@ const PORT = process.env.PORT || 3000;
 const settingService = require('./services/setting.service');
 const { User } = require('./database/models');
 const { authenticate } = require('./middleware/auth.middleware');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = process.env;
 
 // Basic middleware
 app.use(express.json());
@@ -51,15 +53,27 @@ app.get('/', async (req, res) => {
       console.error('Error getting theme color:', error);
     }
     
-    // If user is authenticated, redirect to dashboard
+    // Get user if authenticated
+    let user = null;
     if (req.cookies.token) {
-      return res.redirect('/dashboard');
+      try {
+        const decoded = jwt.verify(req.cookies.token, JWT_SECRET);
+        user = await User.findOne({
+          where: {
+            id: decoded.id,
+            is_active: true,
+            deleted: false
+          }
+        });
+      } catch (error) {
+        console.error('Error getting user:', error);
+      }
     }
     
     res.render('index', { 
       title: 'Planner Buddy',
       themeColor,
-      user: null
+      user
     });
   } catch (error) {
     console.error('[Home Route] Error rendering home page:', error);

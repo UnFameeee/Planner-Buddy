@@ -90,7 +90,12 @@ class AuthService {
   // Login user
   async login(credentials) {
     try {
-      const response = await axios.post('/auth/login', credentials);
+      const response = await axios.post('/auth/login', credentials, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
       if (response.data.success) {
         this.setToken(response.data.data.token);
       }

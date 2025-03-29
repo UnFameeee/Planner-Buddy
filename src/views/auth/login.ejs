@@ -117,32 +117,30 @@
           return;
         }
         
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const formData = {
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        };
         
         try {
-          const response = await fetch('/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-          });
+          const authService = new AuthService();
+          const response = await authService.login(formData);
           
-          const data = await response.json();
-          
-          if (data.success) {
-            // Store token
-            localStorage.setItem('token', data.token);
-            
-            // Redirect to dashboard
+          if (response && response.success) {
+            // Login successful - redirect to dashboard
             window.location.href = '/dashboard';
           } else {
-            alert(data.message || 'Login failed. Please try again.');
+            // Handle unsuccessful login
+            const message = response?.message || 'Login failed. Please try again.';
+            alert(message);
           }
         } catch (error) {
           console.error('Login error:', error);
-          alert('An error occurred. Please try again.');
+          // Try to extract the most meaningful error message
+          const errorMessage = error.message || 
+                             (error.response && error.response.data && error.response.data.message) || 
+                             'Login failed. Please try again.';
+          alert(errorMessage);
         }
       });
     });

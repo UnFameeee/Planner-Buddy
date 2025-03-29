@@ -1,54 +1,6 @@
-<%- include('partials/header') %>
+<%- include('partials/landing-header') %>
 
-<% if (typeof user !== 'undefined' && user) { %>
-<!-- Logged in user view (server-side rendering) -->
-<div class="jumbotron py-5">
-  <h1 class="display-5 fw-bold">Welcome, <%= user.username %>!</h1>
-  <p class="lead">Manage your tasks and appointments with Planner Buddy.</p>
-  <hr class="my-4">
-</div>
-
-<div class="row mb-4">
-  <div class="col-md-6 mb-4">
-    <div class="card h-100">
-      <div class="card-header bg-primary text-white">
-        <h5 class="card-title mb-0"><i class="fas fa-tasks"></i> Recent Todos</h5>
-      </div>
-      <div class="card-body" id="recentTodos">
-        <div class="d-flex justify-content-center">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-      <div class="card-footer">
-        <a href="/todos/all" class="btn btn-sm btn-primary">View All Todos</a>
-        <a href="/todos/create" class="btn btn-sm btn-outline-primary">Add New</a>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-md-6 mb-4">
-    <div class="card h-100">
-      <div class="card-header bg-primary text-white">
-        <h5 class="card-title mb-0"><i class="far fa-calendar-alt"></i> Upcoming Appointments</h5>
-      </div>
-      <div class="card-body" id="upcomingAppointments">
-        <div class="d-flex justify-content-center">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-      <div class="card-footer">
-        <a href="/appointments/calendar" class="btn btn-sm btn-primary">View Calendar</a>
-        <a href="/appointments/create" class="btn btn-sm btn-outline-primary">Add New</a>
-      </div>
-    </div>
-  </div>
-</div>
-<% } else { %>
-<!-- Public landing page for non-authenticated users -->
+<!-- Landing Page Content -->
 <div class="container py-5">
   <div class="row align-items-center min-vh-75">
     <div class="col-lg-6 d-flex flex-column justify-content-center text-center text-lg-start">
@@ -56,8 +8,17 @@
       <h1 class="display-4 fw-bold mb-4">Plan Your Day with Planner Buddy</h1>
       <p class="lead mb-4">A comprehensive task and appointment management system with email reminders via Gmail.</p>
       <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-        <a href="/auth/register" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
-        <a href="/auth/login" class="btn btn-outline-primary btn-lg px-4">Login</a>
+        <% if (user) { %>
+          <a href="/dashboard" class="btn btn-primary btn-lg px-4 me-md-2">
+            <i class="fas fa-columns me-2"></i>Go to Dashboard
+          </a>
+          <a href="/auth/logout" class="btn btn-outline-primary btn-lg px-4">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+          </a>
+        <% } else { %>
+          <a href="/auth/register" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+          <a href="/auth/login" class="btn btn-outline-primary btn-lg px-4">Login</a>
+        <% } %>
       </div>
     </div>
     <div class="col-lg-6 d-none d-lg-block">
@@ -106,134 +67,41 @@
       </div>
     </div>
   </div>
+
+  <div class="row py-5">
+    <div class="col-12 text-center mb-5">
+      <h2 class="fw-bold">Why Choose Planner Buddy?</h2>
+      <p class="lead">Built with modern features to help you stay productive</p>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+      <div class="text-center">
+        <i class="fas fa-mobile-alt fa-3x text-primary mb-3"></i>
+        <h5>Responsive Design</h5>
+        <p class="text-muted">Access your tasks and appointments from any device.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+      <div class="text-center">
+        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+        <h5>Secure & Private</h5>
+        <p class="text-muted">Your data is encrypted and stored securely.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+      <div class="text-center">
+        <i class="fas fa-sync fa-3x text-primary mb-3"></i>
+        <h5>Real-time Sync</h5>
+        <p class="text-muted">Changes are synced instantly across all devices.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-4">
+      <div class="text-center">
+        <i class="fas fa-envelope fa-3x text-primary mb-3"></i>
+        <h5>Email Integration</h5>
+        <p class="text-muted">Get reminders directly in your Gmail inbox.</p>
+      </div>
+    </div>
+  </div>
 </div>
-<% } %>
 
-<!-- Hidden templates and scripts for client-side rendering -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Chỉ truy cập và tải dữ liệu nếu server đã xác thực người dùng (server-side)
-    if (typeof user !== 'undefined' && user) {
-      console.log('[index.js] User authenticated by server:', user.username);
-      loadDashboardData();
-      return;
-    }
-    
-    console.log('[index.js] Server did not authenticate any user');
-  });
-  
-  // Tải dữ liệu cho dashboard
-  function loadDashboardData() {
-    console.log('[index.js] Loading dashboard data');
-    loadTodos();
-    loadAppointments();
-  }
-  
-  // Tải danh sách todos
-  function loadTodos() {
-    fetch('/todos?limit=5&sortBy=due_date&sortOrder=ASC')
-      .then(response => {
-        if (!response.ok) {
-          console.error('[index.js] Error loading todos:', response.status);
-          const todosContainer = document.getElementById('recentTodos');
-          if (todosContainer) {
-            todosContainer.innerHTML = '<p class="text-danger">Error loading todos. Please refresh the page or try again later.</p>';
-          }
-          return;
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (!data) return;
-        console.log('[index.js] Todos loaded:', data.data?.todos?.length || 0, 'items');
-        const todosContainer = document.getElementById('recentTodos');
-        if (!todosContainer) return;
-        
-        if (data.success && data.data?.todos?.length > 0) {
-          let html = '<ul class="list-group list-group-flush">';
-          
-          data.data.todos.forEach(todo => {
-            const dueDate = todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'No due date';
-            const priorityClass = todo.priority === 'high' ? 'text-danger' : 
-                               todo.priority === 'medium' ? 'text-warning' : 'text-success';
-            
-            html += `
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="mb-0">${todo.title}</h6>
-                  <small class="text-muted">Due: ${dueDate}</small>
-                </div>
-                <span class="badge rounded-pill ${priorityClass}">${todo.priority}</span>
-              </li>
-            `;
-          });
-          
-          html += '</ul>';
-          todosContainer.innerHTML = html;
-        } else {
-          todosContainer.innerHTML = '<p class="text-center">No todos found. Create one!</p>';
-        }
-      })
-      .catch(error => {
-        console.error('[index.js] Error fetching todos:', error);
-        const todosContainer = document.getElementById('recentTodos');
-        if (todosContainer) {
-          todosContainer.innerHTML = '<p class="text-danger">Error loading todos. Please refresh the page or try again later.</p>';
-        }
-      });
-  }
-  
-  // Tải danh sách appointments
-  function loadAppointments() {
-    fetch('/appointments?limit=5&sortBy=start_time&sortOrder=ASC')
-      .then(response => {
-        if (!response.ok) {
-          console.error('[index.js] Error loading appointments:', response.status);
-          const appointmentsContainer = document.getElementById('upcomingAppointments');
-          if (appointmentsContainer) {
-            appointmentsContainer.innerHTML = '<p class="text-danger">Error loading appointments. Please refresh the page or try again later.</p>';
-          }
-          return;
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (!data) return;
-        console.log('[index.js] Appointments loaded:', data.data?.appointments?.length || 0, 'items');
-        const appointmentsContainer = document.getElementById('upcomingAppointments');
-        if (!appointmentsContainer) return;
-        
-        if (data.success && data.data?.appointments?.length > 0) {
-          let html = '<ul class="list-group list-group-flush">';
-          
-          data.data.appointments.forEach(appointment => {
-            const startTime = new Date(appointment.start_time).toLocaleString();
-            
-            html += `
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="mb-0">${appointment.title}</h6>
-                  <small class="text-muted">${startTime}</small>
-                </div>
-                <small class="text-muted">${appointment.location || 'No location'}</small>
-              </li>
-            `;
-          });
-          
-          html += '</ul>';
-          appointmentsContainer.innerHTML = html;
-        } else {
-          appointmentsContainer.innerHTML = '<p class="text-center">No appointments found. Create one!</p>';
-        }
-      })
-      .catch(error => {
-        console.error('[index.js] Error fetching appointments:', error);
-        const appointmentsContainer = document.getElementById('upcomingAppointments');
-        if (appointmentsContainer) {
-          appointmentsContainer.innerHTML = '<p class="text-danger">Error loading appointments. Please refresh the page or try again later.</p>';
-        }
-      });
-  }
-</script>
-
-<%- include('partials/footer') %> 
+<%- include('partials/landing-footer') %> 

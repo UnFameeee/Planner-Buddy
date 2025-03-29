@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../database/models');
 const { Op } = require('sequelize');
 const authService = require('../services/auth.service');
+const settingService = require('../services/setting.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
@@ -20,7 +21,31 @@ exports.register = async (req, res) => {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         path: '/'
       });
-      return res.redirect('/dashboard');
+
+      // Get user data for the view
+      const user = await User.findOne({
+        where: {
+          id: result.user.id,
+          is_active: true,
+          deleted: false
+        },
+        include: ['todos', 'appointments']
+      });
+
+      // Get theme color
+      let themeColor = '#72d1a8';
+      try {
+        themeColor = await settingService.getThemeColor();
+      } catch (error) {
+        console.error('Error getting theme color:', error);
+      }
+
+      return res.render('dashboard', {
+        title: 'Dashboard | Planner Buddy',
+        themeColor,
+        user,
+        success: 'Registration successful! Welcome to Planner Buddy.'
+      });
     }
 
     // Return token for API clients
