@@ -271,7 +271,6 @@ const initialView = typeof view !== 'undefined' ? view : 'month';
   // Pass the view parameter to be used in the calendar script
   window.initialCalendarView = '<%= initialView %>';
 </script>
-<%- include('./calendar-script') %>
 
 <script>
 // Current date and view state
@@ -402,13 +401,24 @@ function renderMonthView() {
     if (day > monthLength) break;
   }
   
-  document.getElementById('monthViewBody').innerHTML = html;
+  const monthViewBody = document.getElementById('monthViewBody');
+  if (!monthViewBody) {
+    console.warn('monthViewBody element not found');
+    return;
+  }
+  
+  monthViewBody.innerHTML = html;
 }
 
 // Update calendar title based on current view and date
 function updateCalendarTitle() {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const titleEl = document.getElementById('calendarTitle');
+  
+  if (!titleEl) {
+    console.warn('calendarTitle element not found');
+    return;
+  }
   
   switch (currentView) {
     case 'day':
@@ -458,7 +468,14 @@ function renderWeekView() {
         </th>
       `;
     }
-    document.getElementById('weekViewHeader').innerHTML = headerHtml;
+    
+    const weekViewHeader = document.getElementById('weekViewHeader');
+    if (weekViewHeader) {
+      weekViewHeader.innerHTML = headerHtml;
+    } else {
+      console.warn('weekViewHeader element not found');
+      return;
+    }
     
     // Generate time slots - each row represents an hour
     let bodyHtml = '';
@@ -512,11 +529,125 @@ function renderWeekView() {
     }
     
     // Replace the entire tbody content instead of just weekViewBody
-    const weekViewTable = document.getElementById('weekView').querySelector('tbody');
-    weekViewTable.innerHTML = bodyHtml;
+    const weekViewTable = document.getElementById('weekView');
+    if (weekViewTable) {
+      const tbody = weekViewTable.querySelector('tbody');
+      if (tbody) {
+        tbody.innerHTML = bodyHtml;
+      } else {
+        console.warn('tbody element not found in weekView');
+      }
+    } else {
+      console.warn('weekView element not found');
+    }
   } catch (error) {
     console.error('Error rendering week view:', error);
     showToast('error', 'Error rendering week view: ' + error.message);
+  }
+}
+
+// Render day view
+function renderDayView() {
+  try {
+    const date = new Date(currentDate);
+    const isToday = isSameDay(date, new Date());
+    
+    // Set header
+    const dayViewHeader = document.getElementById('dayViewHeader');
+    if (!dayViewHeader) {
+      console.warn('dayViewHeader element not found');
+      return;
+    }
+    
+    dayViewHeader.textContent = date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    dayViewHeader.className = isToday ? 'table-warning' : '';
+    
+    // Generate time slots (8am-8pm)
+    let bodyHtml = '';
+    for (let hour = 8; hour <= 20; hour++) {
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      
+      bodyHtml += `
+        <tr>
+          <td class="time-label">${hour12}:00 ${ampm}</td>
+          <td class="time-slot" data-hour="${hour}">
+            <div style="position: relative; height: 100%;">
+      `;
+      
+      // Find appointments for this time slot
+      const timeSlotAppointments = Array.isArray(appointments) ? appointments.filter(appointment => {
+        // Support both appointment_date and start_time fields
+        const dateField = appointment.appointment_date || appointment.start_time;
+        if (!dateField) return false;
+        
+        const appointmentDate = new Date(dateField);
+        return isSameDay(appointmentDate, date) && appointmentDate.getHours() === hour;
+      }) : [];
+      
+      // Add appointments
+      timeSlotAppointments.forEach(appointment => {
+        const appointmentDate = new Date(appointment.appointment_date || appointment.start_time);
+        const minutes = appointmentDate.getMinutes();
+        
+        // Calculate position within hour
+        const topPercentage = (minutes / 60) * 100;
+        const duration = appointment.duration || 60; // Default 1 hour if not specified
+        const heightPercentage = Math.min((duration / 60) * 100, 95); // Limit height to prevent overflow
+        
+        const colorClass = getAppointmentColorClass(appointment.appointment_type);
+        
+        bodyHtml += `
+          <div class="day-appointment bg-${colorClass}" 
+              style="top: ${topPercentage}%; height: ${heightPercentage}%;"
+              data-id="${appointment.id}" 
+              title="${appointment.title}">
+            ${appointmentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${appointment.title}
+          </div>
+        `;
+      });
+      
+      bodyHtml += `
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    
+    const dayViewBody = document.getElementById('dayViewBody');
+    if (!dayViewBody) {
+      console.warn('dayViewBody element not found');
+      return;
+    }
+    
+    dayViewBody.innerHTML = bodyHtml;
+    
+    // Add event listeners to appointments
+    document.querySelectorAll('.day-appointment').forEach(item => {
+      item.addEventListener('click', function() {
+        const appointmentId = this.getAttribute('data-id');
+        showAppointmentDetails(appointmentId);
+      });
+    });
+  } catch (error) {
+    console.error('Error rendering day view:', error);
+    showToast('error', 'Error rendering day view: ' + error.message);
+  }
+}
+
+// Helper function to get appointment color class based on type
+function getAppointmentColorClass(type) {
+  switch (type) {
+    case 'meeting':
+      return 'primary';
+    case 'personal':
+      return 'success';
+    case 'medical':
+      return 'danger';
+    case 'reminder':
+      return 'warning';
+    default:
+      return 'info';
   }
 }
 
@@ -542,11 +673,23 @@ function changeView(view) {
   
   // Update active button state
   document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`${view}ViewBtn`).classList.add('active');
+  const viewBtn = document.getElementById(`${view}ViewBtn`);
+  if (viewBtn) {
+    viewBtn.classList.add('active');
+  } else {
+    console.warn(`${view}ViewBtn element not found`);
+  }
   
-  // Hide all views and show selected view
+  // Hide all views 
   document.querySelectorAll('.calendar-view').forEach(el => el.style.display = 'none');
-  document.getElementById(`${view}View`).style.display = 'block';
+  
+  // Show selected view
+  const viewElement = document.getElementById(`${view}View`);
+  if (viewElement) {
+    viewElement.style.display = 'block';
+  } else {
+    console.warn(`${view}View element not found`);
+  }
   
   fetchAppointments();
 }
@@ -570,31 +713,49 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAppointments();
   
   // Set up event listeners for navigation buttons
-  document.getElementById('prevBtn').addEventListener('click', () => {
-    navigateCalendar('prev');
-  });
+  const prevBtn = document.getElementById('prevBtn');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      navigateCalendar('prev');
+    });
+  }
   
-  document.getElementById('nextBtn').addEventListener('click', () => {
-    navigateCalendar('next');
-  });
+  const nextBtn = document.getElementById('nextBtn');
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      navigateCalendar('next');
+    });
+  }
   
-  document.getElementById('todayBtn').addEventListener('click', () => {
-    currentDate = new Date();
-    fetchAppointments();
-  });
+  const todayBtn = document.getElementById('todayBtn');
+  if (todayBtn) {
+    todayBtn.addEventListener('click', () => {
+      currentDate = new Date();
+      fetchAppointments();
+    });
+  }
   
   // Set up event listeners for view buttons
-  document.getElementById('monthViewBtn').addEventListener('click', () => {
-    changeView('month');
-  });
+  const monthViewBtn = document.getElementById('monthViewBtn');
+  if (monthViewBtn) {
+    monthViewBtn.addEventListener('click', () => {
+      changeView('month');
+    });
+  }
   
-  document.getElementById('weekViewBtn').addEventListener('click', () => {
-    changeView('week');
-  });
+  const weekViewBtn = document.getElementById('weekViewBtn');
+  if (weekViewBtn) {
+    weekViewBtn.addEventListener('click', () => {
+      changeView('week');
+    });
+  }
   
-  document.getElementById('dayViewBtn').addEventListener('click', () => {
-    changeView('day');
-  });
+  const dayViewBtn = document.getElementById('dayViewBtn');
+  if (dayViewBtn) {
+    dayViewBtn.addEventListener('click', () => {
+      changeView('day');
+    });
+  }
 });
 
 // Show toast message
