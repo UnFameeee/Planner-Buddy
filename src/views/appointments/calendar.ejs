@@ -292,12 +292,28 @@ async function fetchAppointments() {
       url = `/api/appointments?year=${year}&month=${month}&view=month`;
     }
     
+    console.log('Fetching appointments from URL:', url);
+    
     const response = await axios.get(url);
+    console.log('API response:', response.data);
+    
     // Ensure appointments is always an array
-    appointments = Array.isArray(response.data.data) ? response.data.data : [];
+    if (response.data.data && Array.isArray(response.data.data.appointments)) {
+      // If the API returns data.appointments
+      appointments = response.data.data.appointments;
+    } else if (Array.isArray(response.data.data)) {
+      // If the API returns data directly as an array
+      appointments = response.data.data;
+    } else {
+      console.warn('Unexpected response format:', response.data);
+      appointments = [];
+    }
+    
+    console.log('Appointments loaded:', appointments.length, appointments);
     renderCalendar();
   } catch (error) {
     console.error('Error fetching appointments:', error);
+    console.error('Error details:', error.response?.data || 'No response data available');
     // Reset appointments to empty array on error
     appointments = [];
     showToast('error', 'Error fetching appointments: ' + error.message);
@@ -711,6 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
   appointments = [];
   
   fetchAppointments();
+  loadUpcomingAppointments();
   
   // Set up event listeners for navigation buttons
   const prevBtn = document.getElementById('prevBtn');
@@ -780,6 +797,148 @@ function showToast(type, message) {
   toast.addEventListener('hidden.bs.toast', () => {
     toast.remove();
   });
+}
+
+// Show appointment details in modal
+function showAppointmentDetails(appointmentId) {
+  try {
+    console.log('Fetching appointment details for ID:', appointmentId);
+    
+    // Get the appointment modal
+    const appointmentModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+    
+    // Fetch appointment details
+    axios.get(`/api/appointments/${appointmentId}`)
+      .then(response => {
+        if (response.data.success) {
+          const appointment = response.data.data;
+          console.log('Appointment details:', appointment);
+          
+          // Set modal content
+          document.getElementById('modalTitle').textContent = appointment.title;
+          
+          const appointmentDate = new Date(appointment.start_time);
+          document.getElementById('modalDate').textContent = appointmentDate.toLocaleDateString(undefined, { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+          
+          const endTime = new Date(appointment.end_time);
+          document.getElementById('modalTime').textContent = `${formatTime(appointmentDate)} - ${formatTime(endTime)}`;
+          
+          document.getElementById('modalType').textContent = appointment.appointment_type || 'Not specified';
+          document.getElementById('modalLocation').textContent = appointment.location || 'Not specified';
+          document.getElementById('modalNotes').textContent = appointment.description || 'No notes';
+          
+          // Set edit button link
+          document.getElementById('editAppointmentBtn').href = `/appointments/edit/${appointment.id}`;
+          
+          // Show modal
+          appointmentModal.show();
+        } else {
+          showToast('error', response.data.message || 'Failed to load appointment details');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching appointment details:', error);
+        showToast('error', 'Error loading appointment details');
+      });
+  } catch (error) {
+    console.error('Error in showAppointmentDetails:', error);
+    showToast('error', 'Error showing appointment details');
+  }
+}
+
+// Load upcoming appointments list
+function loadUpcomingAppointments() {
+  try {
+    const upcomingList = document.getElementById('upcomingList');
+    if (!upcomingList) {
+      console.warn('upcomingList element not found');
+      return;
+    }
+    
+    console.log('Loading upcoming appointments');
+    
+    axios.get('/api/appointments/upcoming')
+      .then(response => {
+        if (response.data.success && Array.isArray(response.data.data)) {
+          const upcomingAppointments = response.data.data;
+          console.log('Upcoming appointments loaded:', upcomingAppointments.length);
+          
+          if (upcomingAppointments.length === 0) {
+            upcomingList.innerHTML = `
+              <tr>
+                <td colspan="7" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="far fa-calendar-times fs-4 mb-3 d-block"></i>
+                    <p class="mb-0">No upcoming appointments found.</p>
+                    <p class="mb-0">
+                      <a href="/appointments/create" class="btn btn-sm btn-primary mt-2">
+                        <i class="fas fa-plus me-1"></i> Create Appointment
+                      </a>
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            `;
+          } else {
+            upcomingList.innerHTML = upcomingAppointments.map(appointment => {
+              const startDate = new Date(appointment.start_time);
+              const endDate = new Date(appointment.end_time);
+              
+              return `
+                <tr>
+                  <td>${appointment.title}</td>
+                  <td>${startDate.toLocaleDateString()}</td>
+                  <td>${formatTime(startDate)} - ${formatTime(endDate)}</td>
+                  <td>${appointment.appointment_type || 'Not specified'}</td>
+                  <td>${appointment.location || 'Not specified'}</td>
+                  <td>${appointment.description ? appointment.description.substring(0, 50) + (appointment.description.length > 50 ? '...' : '') : 'No description'}</td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-primary" onclick="showAppointmentDetails('${appointment.id}')">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <a href="/appointments/edit/${appointment.id}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }
+        } else {
+          upcomingList.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center py-3">
+                <div class="alert alert-warning mb-0">
+                  Failed to load upcoming appointments
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+      })
+      .catch(error => {
+        console.error('Error loading upcoming appointments:', error);
+        
+        upcomingList.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-3">
+              <div class="alert alert-danger mb-0">
+                Error loading upcoming appointments: ${error.message}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+  } catch (error) {
+    console.error('Error in loadUpcomingAppointments:', error);
+  }
 }
 </script>
 
