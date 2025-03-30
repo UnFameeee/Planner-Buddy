@@ -69,9 +69,7 @@ const initialView = typeof view !== 'undefined' ? view : 'month';
                   </tr>
                 </thead>
                 <tbody>
-                  <tr id="weekViewBody" style="height: 500px;">
-                    <!-- Week calendar will be generated here -->
-                  </tr>
+                  <!-- Week calendar will be generated here -->
                 </tbody>
               </table>
             </div>
@@ -273,4 +271,421 @@ const initialView = typeof view !== 'undefined' ? view : 'month';
   // Pass the view parameter to be used in the calendar script
   window.initialCalendarView = '<%= initialView %>';
 </script>
-<%- include('./calendar-script') %> 
+<%- include('./calendar-script') %>
+
+<script>
+// Current date and view state
+let currentDate = new Date();
+let currentView = '<%= initialView %>';
+let appointments = [];
+
+// Fetch appointments based on current view
+async function fetchAppointments() {
+  try {
+    let url;
+    if (currentView === 'day') {
+      url = `/api/appointments?date=${currentDate.toISOString().split('T')[0]}`;
+    } else if (currentView === 'week') {
+      url = `/api/appointments?date=${currentDate.toISOString().split('T')[0]}&view=week`;
+    } else { // month view
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+      url = `/api/appointments?year=${year}&month=${month}&view=month`;
+    }
+    
+    const response = await axios.get(url);
+    // Ensure appointments is always an array
+    appointments = Array.isArray(response.data.data) ? response.data.data : [];
+    renderCalendar();
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    // Reset appointments to empty array on error
+    appointments = [];
+    showToast('error', 'Error fetching appointments: ' + error.message);
+    // Still render calendar to show empty state
+    renderCalendar();
+  }
+}
+
+// Render calendar based on current view
+function renderCalendar() {
+  try {
+    updateCalendarTitle();
+    
+    // Make sure appointments is always an array before any operations on it
+    if (!Array.isArray(appointments)) {
+      console.warn('Appointments is not an array, resetting to empty array');
+      appointments = [];
+    }
+    
+    switch (currentView) {
+      case 'day':
+        renderDayView();
+        break;
+      case 'week':
+        renderWeekView();
+        break;
+      case 'month':
+      default:
+        renderMonthView();
+        break;
+    }
+  } catch (error) {
+    console.error('Error rendering calendar:', error);
+    showToast('error', 'Error rendering calendar: ' + error.message);
+  }
+}
+
+// Render month view
+function renderMonthView() {
+  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const startingDay = firstDay.getDay();
+  const monthLength = lastDay.getDate();
+  
+  let html = '';
+  let day = 1;
+  
+  // Create weeks
+  for (let i = 0; i < 6; i++) {
+    html += '<tr>';
+    
+    // Create days
+    for (let j = 0; j < 7; j++) {
+      if (i === 0 && j < startingDay) {
+        // Empty cells before first day
+        html += '<td class="text-muted"></td>';
+      } else if (day > monthLength) {
+        // Empty cells after last day
+        html += '<td class="text-muted"></td>';
+      } else {
+        // Regular day cell
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        const isToday = isSameDay(date, new Date());
+        // Make sure appointments is an array before filtering
+        const dayAppointments = Array.isArray(appointments) ? appointments.filter(apt => {
+          // Handle both date field formats
+          const dateField = apt.appointment_date || apt.start_time;
+          if (!dateField) return false;
+          
+          const aptDate = new Date(dateField);
+          return isSameDay(aptDate, date);
+        }) : [];
+        
+        html += `
+          <td class="position-relative ${isToday ? 'bg-light' : ''}">
+            <div class="d-flex justify-content-between align-items-start p-1">
+              <span class="fw-bold">${day}</span>
+              ${dayAppointments.length > 0 ? `<span class="badge bg-primary">${dayAppointments.length}</span>` : ''}
+            </div>
+            <div class="appointment-list">
+              ${dayAppointments.map(apt => {
+                // Handle both date field formats
+                const dateField = apt.appointment_date || apt.start_time;
+                if (!dateField) return '';
+                
+                return `
+                  <div class="appointment-item p-1 mb-1 rounded bg-light" 
+                       onclick="showAppointmentDetails('${apt.id}')">
+                    <small class="d-block text-truncate">${apt.title}</small>
+                    <small class="text-muted">${formatTime(new Date(dateField))}</small>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </td>
+        `;
+        day++;
+      }
+    }
+    html += '</tr>';
+    if (day > monthLength) break;
+  }
+  
+  document.getElementById('monthViewBody').innerHTML = html;
+}
+
+// Update calendar title based on current view and date
+function updateCalendarTitle() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const titleEl = document.getElementById('calendarTitle');
+  
+  switch (currentView) {
+    case 'day':
+      titleEl.textContent = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+      break;
+    case 'week':
+      const weekStart = new Date(currentDate);
+      weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      
+      if (weekStart.getMonth() === weekEnd.getMonth()) {
+        titleEl.textContent = `${months[weekStart.getMonth()]} ${weekStart.getDate()}-${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+      } else if (weekStart.getFullYear() === weekEnd.getFullYear()) {
+        titleEl.textContent = `${months[weekStart.getMonth()]} ${weekStart.getDate()} - ${months[weekEnd.getMonth()]} ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+      } else {
+        titleEl.textContent = `${months[weekStart.getMonth()]} ${weekStart.getDate()}, ${weekStart.getFullYear()} - ${months[weekEnd.getMonth()]} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+      }
+      break;
+    case 'month':
+    default:
+      titleEl.textContent = `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+      break;
+  }
+}
+
+// Render week view
+function renderWeekView() {
+  try {
+    // Get the start of the week (Sunday)
+    const weekStart = new Date(currentDate);
+    weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    
+    // Generate week days header
+    let headerHtml = '<th style="width: 50px;">Time</th>';
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      const isToday = isSameDay(date, new Date());
+      headerHtml += `
+        <th class="${isToday ? 'bg-light' : ''}">
+          <div class="text-center">
+            <div class="fw-bold">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</div>
+            <div>${date.getDate()}</div>
+          </div>
+        </th>
+      `;
+    }
+    document.getElementById('weekViewHeader').innerHTML = headerHtml;
+    
+    // Generate time slots - each row represents an hour
+    let bodyHtml = '';
+    for (let hour = 0; hour < 24; hour++) {
+      bodyHtml += '<tr>';
+      
+      // Time column
+      bodyHtml += `
+        <td class="text-end pe-2">
+          ${hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+        </td>
+      `;
+      
+      // Day columns
+      for (let day = 0; day < 7; day++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + day);
+        date.setHours(hour);
+        
+        const isToday = isSameDay(date, new Date());
+        // Make sure appointments is an array before filtering
+        const hourAppointments = Array.isArray(appointments) ? appointments.filter(apt => {
+          // Handle both date field formats
+          const dateField = apt.appointment_date || apt.start_time;
+          if (!dateField) return false;
+          
+          const aptDate = new Date(dateField);
+          return isSameDay(aptDate, date) && aptDate.getHours() === hour;
+        }) : [];
+        
+        bodyHtml += `
+          <td class="position-relative ${isToday ? 'bg-light' : ''}" style="height: 40px;">
+            ${hourAppointments.map(apt => {
+              // Handle both date field formats
+              const dateField = apt.appointment_date || apt.start_time;
+              if (!dateField) return '';
+              
+              return `
+                <div class="appointment-item p-1 mb-1 rounded bg-light" 
+                     onclick="showAppointmentDetails('${apt.id}')">
+                  <small class="d-block text-truncate">${apt.title}</small>
+                  <small class="text-muted">${formatTime(new Date(dateField))}</small>
+                </div>
+              `;
+            }).join('')}
+          </td>
+        `;
+      }
+      
+      bodyHtml += '</tr>';
+    }
+    
+    // Replace the entire tbody content instead of just weekViewBody
+    const weekViewTable = document.getElementById('weekView').querySelector('tbody');
+    weekViewTable.innerHTML = bodyHtml;
+  } catch (error) {
+    console.error('Error rendering week view:', error);
+    showToast('error', 'Error rendering week view: ' + error.message);
+  }
+}
+
+// Navigate calendar
+function navigateCalendar(direction) {
+  switch (currentView) {
+    case 'day':
+      currentDate.setDate(currentDate.getDate() + (direction === 'prev' ? -1 : 1));
+      break;
+    case 'week':
+      currentDate.setDate(currentDate.getDate() + (direction === 'prev' ? -7 : 7));
+      break;
+    case 'month':
+      currentDate.setMonth(currentDate.getMonth() + (direction === 'prev' ? -1 : 1));
+      break;
+  }
+  fetchAppointments();
+}
+
+// Change calendar view
+function changeView(view) {
+  currentView = view;
+  
+  // Update active button state
+  document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`${view}ViewBtn`).classList.add('active');
+  
+  // Hide all views and show selected view
+  document.querySelectorAll('.calendar-view').forEach(el => el.style.display = 'none');
+  document.getElementById(`${view}View`).style.display = 'block';
+  
+  fetchAppointments();
+}
+
+// Helper functions
+function isSameDay(date1, date2) {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Initialize calendar
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize appointments as empty array
+  appointments = [];
+  
+  fetchAppointments();
+  
+  // Set up event listeners for navigation buttons
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    navigateCalendar('prev');
+  });
+  
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    navigateCalendar('next');
+  });
+  
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    currentDate = new Date();
+    fetchAppointments();
+  });
+  
+  // Set up event listeners for view buttons
+  document.getElementById('monthViewBtn').addEventListener('click', () => {
+    changeView('month');
+  });
+  
+  document.getElementById('weekViewBtn').addEventListener('click', () => {
+    changeView('week');
+  });
+  
+  document.getElementById('dayViewBtn').addEventListener('click', () => {
+    changeView('day');
+  });
+});
+
+// Show toast message
+function showToast(type, message) {
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0 position-fixed bottom-0 end-0 m-3`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">${message}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  `;
+  
+  document.body.appendChild(toast);
+  const bsToast = new bootstrap.Toast(toast);
+  bsToast.show();
+  
+  toast.addEventListener('hidden.bs.toast', () => {
+    toast.remove();
+  });
+}
+</script>
+
+<style>
+.appointment-list {
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.appointment-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.appointment-item:hover {
+  background-color: #e9ecef !important;
+}
+
+.calendar-table td {
+  height: 120px;
+  width: 14.28%;
+  padding: 0 !important;
+}
+
+.week-view th {
+  min-width: 120px;
+  padding: 10px !important;
+}
+
+.week-view td {
+  padding: 5px !important;
+  border: 1px solid #dee2e6;
+}
+
+.time-column {
+  width: 80px;
+  text-align: right;
+  padding-right: 10px !important;
+  font-size: 0.9em;
+  color: #6c757d;
+}
+
+/* Week view specific styles */
+#weekView .calendar-table {
+  table-layout: fixed;
+}
+
+#weekView .calendar-table td {
+  height: 40px;
+  position: relative;
+  padding: 2px !important;
+}
+
+#weekView .calendar-table th {
+  text-align: center;
+  padding: 8px !important;
+}
+
+.day-appointment {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  overflow: hidden;
+  padding: 2px 5px;
+  font-size: 0.8rem;
+  border-radius: 3px;
+  z-index: 10;
+  cursor: pointer;
+}
+</style> 

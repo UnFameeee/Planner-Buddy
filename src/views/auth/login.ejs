@@ -35,7 +35,12 @@
               </div>
             <% } %>
 
-            <form id="loginForm" class="needs-validation" novalidate>
+            <form id="loginForm" action="/auth/login" method="POST" class="needs-validation" novalidate>
+              <div id="loginError" class="alert alert-danger alert-dismissible fade" role="alert" style="display: none;">
+                <span id="errorMessage"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+              
               <div class="mb-4">
                 <label for="username" class="form-label">Username</label>
                 <div class="input-group">
@@ -98,6 +103,8 @@
       const form = document.getElementById('loginForm');
       const togglePassword = document.getElementById('togglePassword');
       const password = document.getElementById('password');
+      const loginError = document.getElementById('loginError');
+      const errorMessage = document.getElementById('errorMessage');
       
       // Toggle password visibility
       togglePassword.addEventListener('click', function() {
@@ -107,15 +114,35 @@
         this.querySelector('i').classList.toggle('fa-eye-slash');
       });
       
+      // Helper function to show error message
+      function showErrorMessage(message) {
+        errorMessage.textContent = message;
+        loginError.style.display = 'block';
+        loginError.classList.add('show');
+        
+        // Scroll to top of form to make error visible
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      
       // Form submission
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
+        // Clear previous error message
+        loginError.style.display = 'none';
+        loginError.classList.remove('show');
         
         if (!form.checkValidity()) {
           e.stopPropagation();
           form.classList.add('was-validated');
           return;
         }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
         
         const formData = {
           username: document.getElementById('username').value,
@@ -132,15 +159,24 @@
           } else {
             // Handle unsuccessful login
             const message = response?.message || 'Login failed. Please try again.';
-            alert(message);
+            showErrorMessage(message);
           }
         } catch (error) {
           console.error('Login error:', error);
           // Try to extract the most meaningful error message
-          const errorMessage = error.message || 
-                             (error.response && error.response.data && error.response.data.message) || 
-                             'Login failed. Please try again.';
-          alert(errorMessage);
+          let errorMsg = 'Login failed. Please try again.';
+          
+          if (error.message) {
+            errorMsg = error.message;
+          } else if (error.response && error.response.data && error.response.data.message) {
+            errorMsg = error.response.data.message;
+          }
+          
+          showErrorMessage(errorMsg);
+        } finally {
+          // Restore button state
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
         }
       });
     });

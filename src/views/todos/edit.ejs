@@ -100,7 +100,7 @@
     const errorMessage = document.getElementById('errorMessage');
     
     // Load todo data
-    fetch(`/todos/${todoId}`, {
+    fetch(`/api/todos/${todoId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -185,7 +185,7 @@
       }
       
       // Update todo
-      fetch(`/todos/${todoId}`, {
+      fetch(`/api/todos/${todoId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

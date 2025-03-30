@@ -9,6 +9,17 @@ const getAllTodos = async (req, res) => {
     // Extract query parameters for filtering, pagination, and sorting
     const { status, priority, search, page, limit, sortBy, sortOrder } = req.query;
     
+    console.log('Controller - Request params:', { 
+      userId,
+      status,
+      priority,
+      search,
+      page,
+      limit,
+      sortBy,
+      sortOrder
+    });
+
     // Get todos with options
     const result = await todoService.getUserTodos(userId, {
       status,
@@ -25,9 +36,12 @@ const getAllTodos = async (req, res) => {
       data: result
     });
   } catch (error) {
+    console.error('Controller - Error in getAllTodos:', error);
+    console.error('Controller - Error stack:', error.stack);
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

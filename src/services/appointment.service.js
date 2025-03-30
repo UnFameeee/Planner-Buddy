@@ -207,12 +207,34 @@ const deleteAppointment = async (appointmentId, userId) => {
       throw new Error('Appointment not found or access denied');
     }
     
-    // Soft delete the appointment
+    // Delete appointment
     await appointment.destroy();
     
-    return { success: true, message: 'Appointment deleted successfully' };
+    return true;
   } catch (error) {
     throw new Error(`Error deleting appointment: ${error.message}`);
+  }
+};
+
+// Get upcoming appointments
+const getUpcomingAppointments = async (userId, limit = 5) => {
+  try {
+    const now = new Date();
+    
+    const appointments = await Appointment.findAll({
+      where: {
+        user_id: userId,
+        start_time: {
+          [Op.gte]: now
+        }
+      },
+      order: [['start_time', 'ASC']],
+      limit
+    });
+    
+    return appointments;
+  } catch (error) {
+    throw new Error(`Error fetching upcoming appointments: ${error.message}`);
   }
 };
 
@@ -260,5 +282,6 @@ module.exports = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getUpcomingAppointments,
   processAppointmentReminders
 }; 

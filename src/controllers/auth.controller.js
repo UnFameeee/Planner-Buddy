@@ -13,15 +13,24 @@ exports.register = async (req, res) => {
   try {
     const result = await authService.register(req.body);
 
-    if (req.accepts('html')) {
-      // Set token in cookie for web clients
-      res.cookie('token', result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        path: '/'
-      });
+    // Set token in cookie for ALL routes to ensure proper authentication
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
+    });
 
+    // For API routes, always return JSON
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(201).json({
+        success: true,
+        message: 'Registration successful',
+        data: result
+      });
+    }
+
+    if (req.accepts('html')) {
       // Get user data for the view
       const user = await User.findOne({
         where: {
@@ -48,7 +57,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Return token for API clients
+    // Default response as JSON
     return res.status(201).json({
       success: true,
       message: 'Registration successful',
@@ -56,6 +65,15 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // For API routes, always return JSON
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Registration failed'
+      });
+    }
+    
     if (req.accepts('html')) {
       return res.render('auth/register', {
         title: 'Register | Planner Buddy',
@@ -64,6 +82,7 @@ exports.register = async (req, res) => {
         error: error.message || 'Registration failed. Please try again.'
       });
     }
+    
     return res.status(400).json({
       success: false,
       message: error.message || 'Registration failed'
@@ -76,22 +95,31 @@ exports.login = async (req, res) => {
   try {
     const result = await authService.login(req.body);
 
-    if (req.accepts('html')) {
-      // Set token in cookie for web clients
-      res.cookie('token', result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        path: '/'
+    // Set token in cookie for ALL routes to ensure proper authentication
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
+    });
+
+    // For API routes, return JSON
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        data: result
       });
-      
+    }
+
+    if (req.accepts('html')) {
       // Redirect to original URL or dashboard
       const returnTo = req.session?.returnTo || '/dashboard';
       delete req.session?.returnTo;
       return res.redirect(returnTo);
     }
 
-    // Return token for API clients
+    // Default response as JSON
     return res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -99,6 +127,15 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    
+    // For API routes, always return JSON
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(401).json({
+        success: false,
+        message: error.message || 'Login failed'
+      });
+    }
+    
     if (req.accepts('html')) {
       return res.render('auth/login', {
         title: 'Login | Planner Buddy',
@@ -107,6 +144,7 @@ exports.login = async (req, res) => {
         error: error.message || 'Login failed. Please try again.'
       });
     }
+    
     return res.status(401).json({
       success: false,
       message: error.message || 'Login failed'
@@ -117,9 +155,19 @@ exports.login = async (req, res) => {
 // Logout user
 exports.logout = (req, res) => {
   res.clearCookie('token', { path: '/' });
+  
+  // For API routes, always return JSON
+  if (req.originalUrl.startsWith('/api/')) {
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  }
+  
   if (req.accepts('html')) {
     return res.redirect('/auth/login');
   }
+  
   return res.status(200).json({
     success: true,
     message: 'Logged out successfully'

@@ -211,6 +211,27 @@ const deleteAppointment = async (req, res) => {
   }
 };
 
+// Get upcoming appointments
+const getUpcomingAppointments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 5;
+    
+    // Get upcoming appointments
+    const appointments = await appointmentService.getUpcomingAppointments(userId, limit);
+    
+    return res.status(200).json({
+      success: true,
+      data: appointments
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Render appointments page
 const renderAppointmentsPage = async (req, res) => {
   try {
@@ -317,6 +338,7 @@ module.exports = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getUpcomingAppointments,
   renderAppointmentsPage,
   renderCreateAppointmentPage,
   renderEditAppointmentPage

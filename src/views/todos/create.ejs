@@ -1,78 +1,104 @@
 <%- include('../partials/header') %>
 
-<div class="container-fluid">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3">Create New Todo</h1>
-    <a href="/todos/all" class="btn btn-secondary">
-      <i class="fas fa-arrow-left"></i> Back to List
-    </a>
-  </div>
-  
-  <% if (typeof error !== 'undefined' && error) { %>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-      <%= error %>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  <% } %>
-
-  <div class="card shadow mb-4">
-    <div class="card-header py-3">
-      <h6 class="m-0 fw-bold text-primary">Todo Information</h6>
-    </div>
-    <div class="card-body">
-      <% if (user) { %>
-        <form id="createTodoForm">
-          <div class="mb-3">
-            <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="title" name="title" required>
-            <div class="invalid-feedback">Title is required</div>
-          </div>
-          
-          <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <label for="dueDate" class="form-label">Due Date</label>
-              <input type="datetime-local" class="form-control" id="dueDate" name="dueDate">
-            </div>
-            
-            <div class="col-md-6">
-              <label for="priority" class="form-label">Priority <span class="text-danger">*</span></label>
-              <select class="form-select" id="priority" name="priority" required>
-                <option value="">Select priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-              <div class="invalid-feedback">Priority is required</div>
-            </div>
-          </div>
-          
-          <div class="mb-3">
-            <label for="tags" class="form-label">Tags (comma-separated)</label>
-            <input type="text" class="form-control" id="tags" name="tags" placeholder="work, personal, urgent">
-            <div class="form-text">Enter tags separated by commas</div>
-          </div>
-          
-          <div class="mb-3 form-check">
-            <input type="checkbox" class="form-check-input" id="isCompleted" name="isCompleted">
-            <label class="form-check-label" for="isCompleted">Mark as completed</label>
-          </div>
-          
-          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-            <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='/todos/all'">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create Todo</button>
-          </div>
-        </form>
-      <% } else { %>
-        <div class="alert alert-warning">
-          <p class="mb-0">You need to be logged in to create todos.</p>
-          <a href="/auth/login" class="alert-link">Login here</a> to continue.
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">Create New Todo</h1>
+          <p class="text-muted mb-0">Add a new task to your todo list</p>
+        </div>
+        <a href="/todos/all" class="btn btn-outline-primary">
+          <i class="fas fa-arrow-left me-2"></i>Back to List
+        </a>
+      </div>
+      
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= error %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       <% } %>
+
+      <div class="card shadow border-0" style="background: #ffffff; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px, rgba(0, 0, 0, 0.05) 0px 1px 3px !important;">
+        <div class="card-body p-4">
+          <% if (user) { %>
+            <form id="createTodoForm" class="needs-validation" novalidate>
+              <div class="row g-4">
+                <div class="col-12">
+                  <div class="form-floating">
+                    <input type="text" class="form-control" id="title" name="title" placeholder="Enter todo title" required>
+                    <label for="title">Title <span class="text-danger">*</span></label>
+                    <div class="invalid-feedback">Please enter a title for your todo</div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="form-floating">
+                    <textarea class="form-control" id="description" name="description" style="height: 100px" placeholder="Enter description"></textarea>
+                    <label for="description">Description</label>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="form-floating">
+                    <input type="datetime-local" class="form-control" id="dueDate" name="dueDate">
+                    <label for="dueDate">Due Date</label>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="form-floating">
+                    <select class="form-select" id="priority" name="priority" required>
+                      <option value="">Select priority</option>
+                      <option value="low">Low Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="high">High Priority</option>
+                    </select>
+                    <label for="priority">Priority <span class="text-danger">*</span></label>
+                    <div class="invalid-feedback">Please select a priority level</div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="form-floating">
+                    <input type="text" class="form-control" id="tags" name="tags" placeholder="Enter tags">
+                    <label for="tags">Tags</label>
+                    <div class="form-text">Enter tags separated by commas (e.g., work, personal, urgent)</div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="isCompleted" name="isCompleted" role="switch">
+                    <label class="form-check-label" for="isCompleted">Mark as completed</label>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <hr class="my-4">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light" onclick="window.location.href='/todos/all'">
+                      <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4">
+                      <i class="fas fa-plus me-2"></i>Create Todo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          <% } else { %>
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+              <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+              <div>
+                <h6 class="alert-heading mb-1">Authentication Required</h6>
+                <p class="mb-0">You need to be logged in to create todos. <a href="/auth/login" class="alert-link">Login here</a> to continue.</p>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -82,55 +108,93 @@
   document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('createTodoForm');
     
+    // Set default due date to tomorrow at 11:59 PM local time
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 0, 0);
+    
+    // Format date for datetime-local input
+    const dueDateInput = document.getElementById('dueDate');
+    dueDateInput.value = formatDateTimeForInput(tomorrow);
+    
+    // Helper function to format date for datetime-local input
+    function formatDateTimeForInput(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+    
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      // Validate form
       if (!form.checkValidity()) {
         e.stopPropagation();
         form.classList.add('was-validated');
         return;
       }
       
-      // Get form data
       const formData = {
         title: document.getElementById('title').value,
         description: document.getElementById('description').value,
         due_date: document.getElementById('dueDate').value,
         priority: document.getElementById('priority').value,
-        tags: document.getElementById('tags').value
+        tags: document.getElementById('tags').value,
+        is_completed: document.getElementById('isCompleted').checked
       };
       
       try {
-        // Show loading state
         const submitButton = form.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
+        const originalContent = submitButton.innerHTML;
         submitButton.disabled = true;
-        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating...';
         
-        // Send API request
-        const response = await axios.post('/todos', formData);
+        const response = await axios.post('/api/todos', formData);
         
         if (response.data.success) {
-          // Redirect to todos list
           window.location.href = '/todos/all';
         } else {
-          // Show error
-          alert(response.data.message || 'Something went wrong. Please try again.');
+          showToast('error', response.data.message || 'Failed to create todo');
           submitButton.disabled = false;
-          submitButton.textContent = originalText;
+          submitButton.innerHTML = originalContent;
         }
       } catch (error) {
         console.error('Error creating todo:', error);
-        alert(error.response?.data?.message || 'Error creating todo. Please try again.');
+        showToast('error', error.response?.data?.message || 'Error creating todo');
         
-        // Reset button state
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = false;
-        submitButton.textContent = 'Create Todo';
+        submitButton.innerHTML = '<i class="fas fa-plus me-2"></i>Create Todo';
       }
     });
   });
+
+  function showToast(type, message) {
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0 position-fixed bottom-0 end-0 m-3`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    
+    toastEl.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          ${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    
+    document.body.appendChild(toastEl);
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+    
+    toastEl.addEventListener('hidden.bs.toast', () => {
+      toastEl.remove();
+    });
+  }
 </script>
 <% } %>
 

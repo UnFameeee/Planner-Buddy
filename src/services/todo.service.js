@@ -1,14 +1,20 @@
 const { Todo, User } = require('../database/models');
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const { sendTodoReminder } = require('../utils/email.util');
+const { sequelize } = require('../database');
 
 // Get all todos for a user
 const getUserTodos = async (userId, options = {}) => {
   try {
     const { status, priority, search, page = 1, limit = 10, sortBy = 'due_date', sortOrder = 'ASC' } = options;
     
+    console.log('Service - Input options:', { userId, status, priority, search, page, limit, sortBy, sortOrder });
+    
     // Build filters
-    const filters = { user_id: userId };
+    const filters = { 
+      user_id: userId,
+      deleted: false // Ensure we only get non-deleted todos
+    };
     
     // Filter by status (completed or not)
     if (status === 'completed') {
@@ -19,7 +25,13 @@ const getUserTodos = async (userId, options = {}) => {
     
     // Filter by priority
     if (priority) {
-      filters.priority = priority;
+      console.log('Service - Filtering by priority:', priority);
+      // Validate priority value
+      const validPriorities = ['low', 'medium', 'high'];
+      if (!validPriorities.includes(priority.toLowerCase())) {
+        throw new Error(`Invalid priority value. Must be one of: ${validPriorities.join(', ')}`);
+      }
+      filters.priority = priority.toLowerCase();
     }
     
     // Search in title or description
@@ -30,26 +42,45 @@ const getUserTodos = async (userId, options = {}) => {
       ];
     }
     
+    console.log('Service - Using filters:', filters);
+    
     // Calculate pagination
     const offset = (page - 1) * limit;
+    
+    // Validate sortBy field
+    const validSortColumns = ['due_date', 'created_at', 'updated_at', 'title', 'priority', 'is_completed'];
+    const finalSortBy = validSortColumns.includes(sortBy) ? sortBy : 'due_date';
+    const finalSortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
+    
+    console.log('Service - Using sort:', { finalSortBy, finalSortOrder });
     
     // Get todos with pagination
     const { count, rows: todos } = await Todo.findAndCountAll({
       where: filters,
-      limit,
-      offset,
-      order: [[sortBy, sortOrder]],
-      attributes: { exclude: ['deleted'] }
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [[finalSortBy, finalSortOrder]],
+      attributes: { 
+        exclude: ['deleted'],
+        include: [
+          [fn('COALESCE', col('due_date'), fn('NOW')), 'sort_date']
+        ]
+      },
+      raw: false // Ensure we get Sequelize instances
     });
+    
+    console.log(`Service - Found ${count} todos`);
     
     return {
       todos,
       totalItems: count,
       totalPages: Math.ceil(count / limit),
-      currentPage: page
+      currentPage: parseInt(page)
     };
   } catch (error) {
-    throw new Error(`Error fetching todos: ${error.message}`);
+    console.error('Service - Error in getUserTodos:', error);
+    console.error('Service - Error stack:', error.stack);
+    throw error; // Re-throw to be caught by controller
   }
 };
 

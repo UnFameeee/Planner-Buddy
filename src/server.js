@@ -38,9 +38,35 @@ const todoRoutes = require('./routes/todo.routes');
 const appointmentRoutes = require('./routes/appointment.routes');
 const settingRoutes = require('./routes/setting.routes');
 const authRoutes = require('./routes/auth.routes');
+const apiRoutes = require('./routes/api');
 
 // Public routes (no auth required)
 app.use('/auth', authRoutes);
+
+// API routes (with /api prefix)
+app.use('/api', apiRoutes);
+
+// Legacy API compatibility - ensure old API calls still work while transitioning to new structure
+// This forwards non-HTML requests to the new API endpoints
+app.use((req, res, next) => {
+  const path = req.path;
+  // Only apply to auth, todos, appointments endpoints and POST, PUT, DELETE, PATCH methods
+  // Also apply to GET methods that are likely to be API calls (exclude rendering routes)
+  const apiPaths = ['/auth/login', '/auth/register', '/auth/logout', '/auth/me', 
+                   '/todos', '/appointments', '/settings'];
+  
+  const isApiCall = apiPaths.some(apiPath => path.startsWith(apiPath)) && 
+                   (!req.accepts('html') || req.method !== 'GET' || 
+                   (path.includes('/api/') || path === '/auth/me'));
+  
+  if (isApiCall) {
+    console.log(`Forwarding legacy API call from ${req.path} to /api${req.path}`);
+    // Change the URL but maintain the same HTTP method and request body
+    req.url = `/api${req.path}`;
+    return next();
+  }
+  next();
+});
 
 // Home route
 app.get('/', async (req, res) => {

@@ -211,7 +211,7 @@
       emptyState.classList.add('d-none');
       
       // Fetch todos
-      fetch(`/todos?${queryParams.toString()}`)
+      fetch(`/api/todos?${queryParams.toString()}`)
         .then(response => response.json())
         .then(data => {
           if (data.success) {
@@ -394,7 +394,7 @@
           const isCompleted = this.getAttribute('data-status') === 'true';
           
           // Update todo status
-          fetch(`/todos/${todoId}/complete`, {
+          fetch(`/api/todos/${todoId}/complete`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json'
@@ -424,7 +424,7 @@
             const todoId = this.getAttribute('data-id');
             
             // Delete todo
-            fetch(`/todos/${todoId}`, {
+            fetch(`/api/todos/${todoId}`, {
               method: 'DELETE'
             })
             .then(response => response.json())

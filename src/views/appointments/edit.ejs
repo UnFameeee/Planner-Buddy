@@ -141,7 +141,7 @@
     });
     
     // Load appointment data
-    fetch(`/appointments/${appointmentId}`, {
+    fetch(`/api/appointments/${appointmentId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -224,7 +224,7 @@
       }
       
       // Update appointment
-      fetch(`/appointments/${appointmentId}`, {
+      fetch(`/api/appointments/${appointmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +252,7 @@
     deleteAppointmentBtn.addEventListener('click', function() {
       if (confirm('Are you sure you want to delete this appointment?')) {
         // Delete appointment
-        fetch(`/appointments/${appointmentId}`, {
+        fetch(`/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

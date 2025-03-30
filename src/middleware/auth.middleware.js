@@ -3,30 +3,43 @@ const { User } = require('../database/models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Public routes that don't require authentication
+const publicRoutes = [
+  '/',
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password'
+];
+
 // Middleware to handle both cookie and bearer token authentication
 const authenticate = async (req, res, next) => {
   try {
-    let token;
-
-    // Check for token in cookie first (for web clients)
-    if (req.cookies?.token) {
-      token = req.cookies.token;
-    }
-    // Then check for bearer token in header (for API clients)
-    else if (req.headers.authorization?.startsWith('Bearer ')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-
+    // First check if it's a public route (ignoring query parameters)
+    const currentPath = req.path;
+    const isPublicRoute = publicRoutes.some(route => currentPath === route);
+    
+    // For public routes, we still try to attach the user if a token exists
+    let token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+    
     if (!token) {
-      // Do not redirect for web clients, just provide error but continue
-      if (req.accepts('html')) {
-        // Store the URL they were trying to access
-        req.session.returnTo = req.originalUrl;
-        req.authError = 'Please log in to continue.';
-        req.user = null; // Explicitly set user to null
+      // If it's a public route, allow access without token
+      if (isPublicRoute) {
         return next();
       }
       
+      console.log('No token found for protected path:', currentPath);
+      // Store authentication error for later use (in case we want to show it)
+      req.authError = 'No token provided. Please log in.';
+      
+      // For web clients, redirect to login
+      if (req.accepts('html') && !req.originalUrl.startsWith('/api/')) {
+        // Store the URL they were trying to access
+        req.session.returnTo = req.originalUrl;
+        return res.redirect('/auth/login');
+      }
+      
+      // For API requests or non-HTML requests
       return res.status(401).json({
         success: false,
         message: 'Access denied. No token provided.'
@@ -37,12 +50,21 @@ const authenticate = async (req, res, next) => {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
+      console.log('Token verified for user:', decoded.username);
     } catch (error) {
+      console.log('Token verification failed:', error.message);
+      
+      // If it's a public route, allow access even with invalid token
+      if (isPublicRoute) {
+        return next();
+      }
+      
       if (error.name === 'TokenExpiredError') {
-        // Do not redirect, just set error and continue
-        if (req.accepts('html')) {
-          req.authError = 'Your session has expired. Please log in again.';
-          return next();
+        req.authError = 'Your session has expired. Please log in again.';
+        
+        if (req.accepts('html') && !req.originalUrl.startsWith('/api/')) {
+          req.session.returnTo = req.originalUrl;
+          return res.redirect('/auth/login?error=expired');
         }
         
         return res.status(401).json({
@@ -51,10 +73,11 @@ const authenticate = async (req, res, next) => {
         });
       }
       
-      // Do not redirect, just set error and continue
-      if (req.accepts('html')) {
-        req.authError = 'Invalid token. Please log in again.';
-        return next();
+      req.authError = 'Invalid authentication. Please log in again.';
+      
+      if (req.accepts('html') && !req.originalUrl.startsWith('/api/')) {
+        req.session.returnTo = req.originalUrl;
+        return res.redirect('/auth/login?error=invalid');
       }
       
       return res.status(401).json({
@@ -73,10 +96,18 @@ const authenticate = async (req, res, next) => {
     });
 
     if (!user) {
-      // Do not redirect, just set error and continue
-      if (req.accepts('html')) {
-        req.authError = 'User account not found or inactive.';
+      console.log('User not found or inactive:', decoded.id);
+      
+      // If it's a public route, allow access even without valid user
+      if (isPublicRoute) {
         return next();
+      }
+      
+      req.authError = 'User account not found or inactive.';
+      
+      if (req.accepts('html') && !req.originalUrl.startsWith('/api/')) {
+        req.session.returnTo = req.originalUrl;
+        return res.redirect('/auth/login?error=inactive');
       }
       
       return res.status(401).json({
@@ -88,6 +119,7 @@ const authenticate = async (req, res, next) => {
     // Check token expiration with buffer time
     const currentTime = Math.floor(Date.now() / 1000);
     if (decoded.exp - currentTime < 300) { // Less than 5 minutes remaining
+      console.log('Refreshing token for user:', user.username);
       // Generate new token
       const newToken = jwt.sign(
         {
@@ -117,14 +149,40 @@ const authenticate = async (req, res, next) => {
 
     // Attach user to request
     req.user = user;
+    console.log('User attached to request:', user.username);
+    
+    // For protected routes, ensure we have a user
+    if (!isPublicRoute && !req.user) {
+      console.log('No user found for protected route:', currentPath);
+      
+      req.authError = 'Authentication required.';
+      
+      if (req.accepts('html') && !req.originalUrl.startsWith('/api/')) {
+        req.session.returnTo = req.originalUrl;
+        return res.redirect('/auth/login');
+      }
+      
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required.'
+      });
+    }
+    
     next();
   } catch (error) {
     console.error('Authentication error:', error);
     
-    // Do not redirect for web clients, just provide error but continue
-    if (req.accepts('html')) {
-      req.authError = 'Authentication failed. Please try again.';
+    // Store the error message
+    req.authError = 'Authentication error occurred. Please try again.';
+    
+    // If it's a public route, allow access even on error
+    if (publicRoutes.includes(req.path)) {
       return next();
+    }
+    
+    if (req.accepts('html') && !req.originalUrl.startsWith('/api/')) {
+      req.session.returnTo = req.originalUrl;
+      return res.redirect('/auth/login?error=server');
     }
     
     return res.status(401).json({
