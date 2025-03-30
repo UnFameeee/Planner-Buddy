@@ -1,6 +1,7 @@
 const { Appointment, User } = require('../database/models');
 const { Op } = require('sequelize');
 const { sendAppointmentReminder } = require('../utils/email.util');
+const emailQueueService = require('./email_queue.service');
 
 // Get all appointments for a user
 const getUserAppointments = async (userId, options = {}) => {
@@ -159,13 +160,50 @@ const getAppointmentById = async (appointmentId, userId) => {
 // Create a new appointment
 const createAppointment = async (appointmentData, userId) => {
   try {
+    console.log(`Creating appointment for user: ${userId}`);
+    console.log('Appointment data:', JSON.stringify(appointmentData, null, 2));
+    
+    // Đảm bảo các trường reminder_settings được khởi tạo đúng nếu không có
+    if (!appointmentData.reminder_settings) {
+      appointmentData.reminder_settings = {
+        enabled: true,
+        minutes_before: 30,
+        email_notification: true,
+        reminder_type: 'once'
+      };
+    }
+    
     const newAppointment = await Appointment.create({
       ...appointmentData,
       user_id: userId
     });
     
+    console.log(`Appointment created with ID: ${newAppointment.id}`);
+    
+    // Lấy thông tin user để tạo email reminder
+    const user = await User.findByPk(userId);
+    if (!user) {
+      console.error(`User not found with ID: ${userId}`);
+      throw new Error('User not found');
+    }
+    
+    // Tạo email reminder
+    console.log('Creating email reminder for the appointment...');
+    try {
+      const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
+      if (emailQueue) {
+        console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
+      } else {
+        console.log('No email reminder was created (reminder time may have passed or notifications disabled)');
+      }
+    } catch (reminderError) {
+      console.error('Error creating email reminder:', reminderError);
+      // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+    }
+    
     return newAppointment;
   } catch (error) {
+    console.error('Error creating appointment:', error);
     throw new Error(`Error creating appointment: ${error.message}`);
   }
 };
@@ -173,6 +211,9 @@ const createAppointment = async (appointmentData, userId) => {
 // Update an existing appointment
 const updateAppointment = async (appointmentId, appointmentData, userId) => {
   try {
+    console.log(`Updating appointment ID: ${appointmentId} for user: ${userId}`);
+    console.log('Appointment update data:', JSON.stringify(appointmentData, null, 2));
+    
     const appointment = await Appointment.findOne({
       where: {
         id: appointmentId,
@@ -181,14 +222,49 @@ const updateAppointment = async (appointmentId, appointmentData, userId) => {
     });
     
     if (!appointment) {
+      console.error(`Appointment not found with ID: ${appointmentId} for user: ${userId}`);
       throw new Error('Appointment not found or access denied');
     }
     
+    // Lưu thời gian cũ để kiểm tra xem có thay đổi không
+    const oldStartTime = appointment.start_time;
+    
     // Update appointment
     await appointment.update(appointmentData);
+    console.log(`Appointment updated successfully, ID: ${appointment.id}`);
+    
+    // Nếu thời gian hoặc reminder settings thay đổi, cập nhật email reminder
+    if (new Date(oldStartTime).getTime() !== new Date(appointment.start_time).getTime() || 
+        appointmentData.reminder_settings) {
+      
+      console.log('Start time or reminder settings changed, updating email reminder...');
+      
+      // Lấy thông tin user
+      const user = await User.findByPk(userId);
+      if (!user) {
+        console.error(`User not found with ID: ${userId}`);
+        throw new Error('User not found');
+      }
+      
+      // Tạo email reminder mới
+      try {
+        const emailQueue = await emailQueueService.createAppointmentReminder(appointment, user);
+        if (emailQueue) {
+          console.log(`New email reminder created successfully with queue ID: ${emailQueue.id}`);
+        } else {
+          console.log('No new email reminder was created (reminder time may have passed or notifications disabled)');
+        }
+      } catch (reminderError) {
+        console.error('Error creating updated email reminder:', reminderError);
+        // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+      }
+    } else {
+      console.log('No changes to start time or reminder settings, not updating email reminder');
+    }
     
     return appointment;
   } catch (error) {
+    console.error('Error updating appointment:', error);
     throw new Error(`Error updating appointment: ${error.message}`);
   }
 };
@@ -242,33 +318,66 @@ const getUpcomingAppointments = async (userId, limit = 5) => {
 const processAppointmentReminders = async () => {
   try {
     const now = new Date();
+    console.log(`Processing appointment reminders at: ${now.toISOString()}`);
     
     // Find appointments with reminders due and not sent yet
     const dueAppointments = await Appointment.findAll({
       where: {
         reminder_time: { [Op.lte]: now },
         reminder_sent: false,
-        start_time: { [Op.gt]: now } // Only remind for future appointments
+        deleted: false
       },
       include: [{
         model: User,
         as: 'user',
-        attributes: ['id', 'username', 'email', 'timezone']
+        attributes: ['id', 'email', 'username', 'timezone']
       }]
     });
+
+    console.log(`Found ${dueAppointments.length} appointments with reminders due`);
     
+    // Process each appointment
     for (const appointment of dueAppointments) {
-      if (appointment.user) {
-        // Send reminder
-        await sendAppointmentReminder(appointment.user, appointment);
+      try {
+        console.log(`Processing reminder for appointment: ${appointment.id} - ${appointment.title}`);
         
-        // Mark reminder as sent
+        // Kiểm tra xem có cần gửi email không
+        const reminderSettings = appointment.reminder_settings || {
+          enabled: true,
+          email_notification: true
+        };
+        
+        if (reminderSettings.enabled && reminderSettings.email_notification) {
+          console.log('Email notification is enabled, creating reminder...');
+          // Chỉ tạo reminder nếu chưa có trong email_queue
+          const user = appointment.user;
+          if (!user) {
+            console.log(`User not found for appointment ${appointment.id}, skipping reminder`);
+            continue;
+          }
+          
+          const emailQueue = await emailQueueService.createAppointmentReminder(appointment, user);
+          if (emailQueue) {
+            console.log(`Reminder created and added to queue with ID: ${emailQueue.id}`);
+          } else {
+            console.log('No reminder created (possibly already passed the reminder time)');
+          }
+        } else {
+          console.log('Email notification is disabled for this appointment, skipping reminder creation');
+        }
+        
+        // Đánh dấu là đã gửi
         await appointment.update({ reminder_sent: true });
+        
+        console.log(`Reminder processed for appointment: ${appointment.id} - ${appointment.title}`);
+      } catch (error) {
+        console.error(`Error processing reminder for appointment ${appointment.id}:`, error);
       }
     }
     
-    return { success: true, reminders_sent: dueAppointments.length };
+    return dueAppointments.length;
   } catch (error) {
+    console.error('Error processing appointment reminders:', error);
     throw new Error(`Error processing appointment reminders: ${error.message}`);
   }
 };

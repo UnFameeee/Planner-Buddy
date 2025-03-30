@@ -10,6 +10,8 @@ const { User } = require('./database/models');
 const { authenticate } = require('./middleware/auth.middleware');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = process.env;
+const emailProcessorService = require('./services/email_processor.service');
+const appointmentService = require('./services/appointment.service');
 
 // Basic middleware
 app.use(express.json());
@@ -167,4 +169,37 @@ app.use(async (err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+
+  // Khởi tạo email processor
+  if (process.env.NODE_ENV !== 'test') {
+    // Chuyển email từ queue sang progress mỗi phút
+    const QUEUE_PROCESS_INTERVAL = parseInt(process.env.QUEUE_PROCESS_INTERVAL || '60000', 10);
+    
+    // Xử lý và gửi email mỗi 15 giây
+    const EMAIL_PROCESS_INTERVAL = parseInt(process.env.EMAIL_PROCESS_INTERVAL || '15000', 10);
+    
+    // Thời gian để kiểm tra và tạo reminders cho appointments (mặc định 5 phút)
+    const APPOINTMENT_REMINDER_INTERVAL = parseInt(process.env.APPOINTMENT_REMINDER_INTERVAL || '300000', 10);
+    
+    // Khởi tạo email processor
+    emailProcessorService.initializeEmailProcessor(
+      QUEUE_PROCESS_INTERVAL, 
+      EMAIL_PROCESS_INTERVAL
+    );
+    
+    console.log('Email reminder processor initialized');
+    
+    // Khởi tạo appointment reminder processor
+    setInterval(async () => {
+      try {
+        console.log('Running appointment reminder processor...');
+        const processedCount = await appointmentService.processAppointmentReminders();
+        console.log(`Processed ${processedCount} appointment reminders`);
+      } catch (error) {
+        console.error('Error processing appointment reminders:', error);
+      }
+    }, APPOINTMENT_REMINDER_INTERVAL);
+    
+    console.log(`Appointment reminder processor initialized with interval: ${APPOINTMENT_REMINDER_INTERVAL}ms`);
+  }
 }); 

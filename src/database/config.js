@@ -7,7 +7,7 @@ module.exports = {
     database: process.env.DB_NAME || 'planner_buddy',
     host: process.env.DB_HOST || 'localhost',
     dialect: process.env.DB_DIALECT || 'mysql',
-    logging: console.log,
+    logging: false,
     define: {
       timestamps: true,
       underscored: true,
