@@ -281,6 +281,8 @@ let appointments = [];
 // Fetch appointments based on current view
 async function fetchAppointments() {
   try {
+    console.log('Fetching appointments for view:', currentView);
+    
     let url;
     if (currentView === 'day') {
       url = `/api/appointments?date=${currentDate.toISOString().split('T')[0]}`;
@@ -310,6 +312,8 @@ async function fetchAppointments() {
     }
     
     console.log('Appointments loaded:', appointments.length, appointments);
+    
+    // Always render the calendar when we get new data
     renderCalendar();
   } catch (error) {
     console.error('Error fetching appointments:', error);
@@ -721,59 +725,39 @@ function formatTime(date) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// Initialize calendar
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize appointments as empty array
-  appointments = [];
+// Immediately initialize view on page load
+(function initializeCalendarView() {
+  // Get view from URL parameter if available
+  const urlParams = new URLSearchParams(window.location.search);
+  const viewParam = urlParams.get('view');
   
-  fetchAppointments();
-  loadUpcomingAppointments();
-  
-  // Set up event listeners for navigation buttons
-  const prevBtn = document.getElementById('prevBtn');
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
-      navigateCalendar('prev');
-    });
+  // Set view from URL parameter, window.initialCalendarView, or default to 'month'
+  if (viewParam && ['day', 'week', 'month'].includes(viewParam)) {
+    currentView = viewParam;
+  } else if (window.initialCalendarView && ['day', 'week', 'month'].includes(window.initialCalendarView)) {
+    currentView = window.initialCalendarView;
+  } else {
+    currentView = 'month';
   }
   
-  const nextBtn = document.getElementById('nextBtn');
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      navigateCalendar('next');
-    });
+  console.log('Initializing calendar with view:', currentView);
+  
+  // Set active button state
+  document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+  const viewBtn = document.getElementById(`${currentView}ViewBtn`);
+  if (viewBtn) {
+    viewBtn.classList.add('active');
   }
   
-  const todayBtn = document.getElementById('todayBtn');
-  if (todayBtn) {
-    todayBtn.addEventListener('click', () => {
-      currentDate = new Date();
-      fetchAppointments();
-    });
-  }
+  // Hide all views
+  document.querySelectorAll('.calendar-view').forEach(el => el.style.display = 'none');
   
-  // Set up event listeners for view buttons
-  const monthViewBtn = document.getElementById('monthViewBtn');
-  if (monthViewBtn) {
-    monthViewBtn.addEventListener('click', () => {
-      changeView('month');
-    });
+  // Show selected view
+  const viewElement = document.getElementById(`${currentView}View`);
+  if (viewElement) {
+    viewElement.style.display = 'block';
   }
-  
-  const weekViewBtn = document.getElementById('weekViewBtn');
-  if (weekViewBtn) {
-    weekViewBtn.addEventListener('click', () => {
-      changeView('week');
-    });
-  }
-  
-  const dayViewBtn = document.getElementById('dayViewBtn');
-  if (dayViewBtn) {
-    dayViewBtn.addEventListener('click', () => {
-      changeView('day');
-    });
-  }
-});
+})();
 
 // Show toast message
 function showToast(type, message) {
@@ -940,6 +924,62 @@ function loadUpcomingAppointments() {
     console.error('Error in loadUpcomingAppointments:', error);
   }
 }
+
+// Initialize event listeners when the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize appointments as empty array
+  appointments = [];
+  
+  // Load data
+  fetchAppointments();
+  loadUpcomingAppointments();
+  
+  // Set up event listeners for navigation buttons
+  const prevBtn = document.getElementById('prevBtn');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      navigateCalendar('prev');
+    });
+  }
+  
+  const nextBtn = document.getElementById('nextBtn');
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      navigateCalendar('next');
+    });
+  }
+  
+  const todayBtn = document.getElementById('todayBtn');
+  if (todayBtn) {
+    todayBtn.addEventListener('click', () => {
+      currentDate = new Date();
+      fetchAppointments();
+      renderCalendar();
+    });
+  }
+  
+  // Set up event listeners for view buttons
+  const monthViewBtn = document.getElementById('monthViewBtn');
+  if (monthViewBtn) {
+    monthViewBtn.addEventListener('click', () => {
+      changeView('month');
+    });
+  }
+  
+  const weekViewBtn = document.getElementById('weekViewBtn');
+  if (weekViewBtn) {
+    weekViewBtn.addEventListener('click', () => {
+      changeView('week');
+    });
+  }
+  
+  const dayViewBtn = document.getElementById('dayViewBtn');
+  if (dayViewBtn) {
+    dayViewBtn.addEventListener('click', () => {
+      changeView('day');
+    });
+  }
+});
 </script>
 
 <style>
