@@ -54,7 +54,7 @@
                             Due: <%= new Date(todo.due_date).toLocaleDateString() %>
                           </small>
                         </div>
-                        <span class="badge rounded-pill" style="background-color: <%= todo.priority === 'high' ? '#dc3545' : todo.priority === 'medium' ? '#ffc107' : '#28a745' %>">
+                        <span class="badge rounded-pill" style="background-color: '<%= todo.priority === 'high' ? '#dc3545' : todo.priority === 'medium' ? '#ffc107' : '#28a745' %>'">
                           <%= todo.priority %>
                         </span>
                       </div>
