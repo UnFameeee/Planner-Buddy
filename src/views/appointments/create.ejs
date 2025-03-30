@@ -8,7 +8,7 @@
           <h1 class="h3 mb-0">Schedule Appointment</h1>
           <p class="text-muted mb-0">Create a new appointment in your calendar</p>
         </div>
-        <a href="/calendar" class="btn btn-outline-primary">
+        <a href="/appointments/calendar" class="btn btn-outline-primary">
           <i class="fas fa-calendar me-2"></i>Back to Calendar
         </a>
       </div>
@@ -116,7 +116,7 @@
                 <div class="col-12">
                   <hr class="my-4">
                   <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-light" onclick="window.location.href='/calendar'">
+                    <button type="button" class="btn btn-light" onclick="window.location.href='/appointments/calendar'">
                       <i class="fas fa-times me-2"></i>Cancel
                     </button>
                     <button type="submit" class="btn btn-primary px-4">
@@ -207,19 +207,39 @@
         return;
       }
       
+      // Get form values
+      const title = document.getElementById('title').value;
+      const startTimeInput = document.getElementById('startTime').value;
+      const endTimeInput = document.getElementById('endTime').value;
+      const appointmentType = document.getElementById('appointmentType').value;
+      const location = document.getElementById('location').value;
+      const description = document.getElementById('description').value;
+      const setReminder = document.getElementById('setReminder').checked;
+      
+      // Convert datetime-local input format to ISO string
+      const startTime = new Date(startTimeInput).toISOString();
+      const endTime = new Date(endTimeInput).toISOString();
+      
       const formData = {
-        title: document.getElementById('title').value,
-        start_time: document.getElementById('startTime').value,
-        end_time: document.getElementById('endTime').value,
-        appointment_type: document.getElementById('appointmentType').value,
-        location: document.getElementById('location').value,
-        description: document.getElementById('description').value,
-        set_reminder: document.getElementById('setReminder').checked
+        title,
+        start_time: startTime,
+        end_time: endTime,
+        appointment_type: appointmentType,
+        location,
+        description,
+        set_reminder: setReminder
       };
       
-      if (formData.set_reminder) {
-        formData.reminder_time = document.getElementById('reminderTime').value;
-        formData.reminder_method = document.getElementById('reminderMethod').value;
+      if (setReminder) {
+        const reminderMinutes = parseInt(document.getElementById('reminderTime').value);
+        const reminderMethod = document.getElementById('reminderMethod').value;
+        
+        // Calculate reminder time by subtracting minutes from start time
+        const reminderDate = new Date(startTimeInput);
+        reminderDate.setMinutes(reminderDate.getMinutes() - reminderMinutes);
+        
+        formData.reminder_time = reminderDate.toISOString();
+        formData.reminder_method = reminderMethod;
       }
       
       try {
@@ -228,10 +248,14 @@
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating...';
         
+        console.log('Sending appointment data:', formData);
+        
         const response = await axios.post('/api/appointments', formData);
         
+        console.log('Response received:', response.data);
+        
         if (response.data.success) {
-          window.location.href = '/calendar';
+          window.location.href = '/appointments/calendar';
         } else {
           showToast('error', response.data.message || 'Failed to create appointment');
           submitButton.disabled = false;
@@ -239,7 +263,8 @@
         }
       } catch (error) {
         console.error('Error creating appointment:', error);
-        showToast('error', error.response?.data?.message || 'Error creating appointment');
+        console.error('Error details:', error.response?.data || 'No response data');
+        showToast('error', error.response?.data?.message || 'Error creating appointment. Check console for details.');
         
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = false;
