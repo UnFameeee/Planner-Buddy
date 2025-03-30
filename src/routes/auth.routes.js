@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, logout, getCurrentUser } = require('../controllers/auth.controller');
+const { register, login, logout } = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const settingService = require('../services/setting.service');
 
@@ -14,13 +14,14 @@ const getThemeColor = async () => {
   }
 };
 
-// Public routes
+// View routes - render EJS templates
 router.get('/login', async (req, res) => {
   const themeColor = await getThemeColor();
   res.render('auth/login', {
     title: 'Login | Planner Buddy',
     themeColor,
     user: null,
+    path: req.path,
     error: req.query.error || null,
     success: req.query.success || null
   });
@@ -32,16 +33,15 @@ router.get('/register', async (req, res) => {
     title: 'Register | Planner Buddy',
     themeColor,
     user: null,
+    path: req.path,
     error: req.query.error || null,
     success: req.query.success || null
   });
 });
 
-router.post('/register', register);
+// Form processing routes
 router.post('/login', login);
+router.post('/register', register);
 router.get('/logout', logout);
-
-// Protected routes
-router.get('/me', authenticate, getCurrentUser);
 
 module.exports = router; 

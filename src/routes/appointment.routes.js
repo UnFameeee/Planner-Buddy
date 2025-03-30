@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointment.controller');
+const { authenticate } = require('../middleware/auth.middleware');
 
-// View Routes - must be placed before parameterized routes
+// Apply authentication middleware to all routes
+router.use(authenticate);
+
+// View Routes
 router.get('/create', appointmentController.renderCreateAppointmentPage);
 router.get('/calendar', appointmentController.renderAppointmentsPage);
 router.get('/edit/:id', appointmentController.renderEditAppointmentPage);
-
-// API Routes
-router.get('/', appointmentController.getAllAppointments);
-router.post('/', appointmentController.createAppointment);
-router.get('/:id', appointmentController.getAppointmentById);
-router.put('/:id', appointmentController.updateAppointment);
-router.delete('/:id', appointmentController.deleteAppointment);
 
 module.exports = router; 

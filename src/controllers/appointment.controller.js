@@ -7,9 +7,35 @@ const getAllAppointments = async (req, res) => {
     const userId = req.user.id;
     
     // Extract query parameters for filtering, pagination, and sorting
-    const { start_date, end_date, search, page, limit, sortBy, sortOrder } = req.query;
+    const { date, start_date, end_date, search, page, limit, sortBy, sortOrder, view, year, month } = req.query;
+
+    console.log('Appointment query params:', req.query);
     
-    // Get appointments with options
+    // Handle calendar views
+    if (view === 'week' && date) {
+      // Handle week view
+      const appointments = await appointmentService.getAppointmentsByWeek(userId, date);
+      return res.status(200).json({
+        success: true,
+        data: appointments
+      });
+    } else if (date && !view) {
+      // Handle day view
+      const appointments = await appointmentService.getAppointmentsByDay(userId, date);
+      return res.status(200).json({
+        success: true,
+        data: appointments
+      });
+    } else if (year && month && view === 'month') {
+      // Handle month view
+      const appointments = await appointmentService.getAppointmentsByMonth(userId, year, month);
+      return res.status(200).json({
+        success: true,
+        data: appointments
+      });
+    }
+    
+    // Default: Get appointments with options 
     const result = await appointmentService.getUserAppointments(userId, {
       start_date,
       end_date,
@@ -25,6 +51,7 @@ const getAllAppointments = async (req, res) => {
       data: result
     });
   } catch (error) {
+    console.error('Error in getAllAppointments:', error);
     return res.status(500).json({
       success: false,
       message: error.message
@@ -211,6 +238,27 @@ const deleteAppointment = async (req, res) => {
   }
 };
 
+// Get upcoming appointments
+const getUpcomingAppointments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 5;
+    
+    // Get upcoming appointments
+    const appointments = await appointmentService.getUpcomingAppointments(userId, limit);
+    
+    return res.status(200).json({
+      success: true,
+      data: appointments
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Render appointments page
 const renderAppointmentsPage = async (req, res) => {
   try {
@@ -219,7 +267,7 @@ const renderAppointmentsPage = async (req, res) => {
     
     // If authentication failed but we're still here
     if (!req.user) {
-      return res.render('appointments/index', {
+      return res.render('appointments/calendar', {
         title: `Appointments | ${appName}`,
         themeColor,
         user: null,
@@ -228,7 +276,7 @@ const renderAppointmentsPage = async (req, res) => {
       });
     }
     
-    res.render('appointments/index', {
+    res.render('appointments/calendar', {
       title: `Appointments | ${appName}`,
       themeColor,
       user: req.user,
@@ -317,6 +365,7 @@ module.exports = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getUpcomingAppointments,
   renderAppointmentsPage,
   renderCreateAppointmentPage,
   renderEditAppointmentPage
