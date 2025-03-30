@@ -1,0 +1,470 @@
+<%- include('./partials/header') %>
+
+<div class="container-fluid">
+  <!-- Today's Overview -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm mb-0">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+              <i class="fas fa-chart-line me-2 text-primary"></i>
+              Today's Overview
+            </h5>
+            <div class="badge bg-light text-dark fs-6 fw-normal">
+              <i class="far fa-calendar-alt me-2"></i>
+              <%= currentDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="p-3">
+            <div class="row g-3">
+              <div class="col-md-6 col-lg-3">
+                <div class="card h-100 rounded-3 border-0 shadow-sm">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                      <div class="rounded-circle p-3 me-3" style="background-color: rgba(13, 110, 253, 0.1);">
+                        <i class="fas fa-tasks fs-4 text-primary"></i>
+                      </div>
+                      <div>
+                        <h6 class="card-title fs-6 text-muted mb-1">Today's Tasks</h6>
+                        <h3 class="mb-0 fw-bold"><%= todayTodos ? todayTodos.length : 0 %></h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6 col-lg-3">
+                <div class="card h-100 rounded-3 border-0 shadow-sm">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                      <div class="rounded-circle p-3 me-3" style="background-color: rgba(255, 193, 7, 0.1);">
+                        <i class="fas fa-clock fs-4 text-warning"></i>
+                      </div>
+                      <div>
+                        <h6 class="card-title fs-6 text-muted mb-1">Pending Tasks</h6>
+                        <h3 class="mb-0 fw-bold"><%= todayTodos ? todayTodos.filter(todo => !todo.completed).length : 0 %></h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6 col-lg-3">
+                <div class="card h-100 rounded-3 border-0 shadow-sm">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                      <div class="rounded-circle p-3 me-3" style="background-color: rgba(25, 135, 84, 0.1);">
+                        <i class="fas fa-check fs-4 text-success"></i>
+                      </div>
+                      <div>
+                        <h6 class="card-title fs-6 text-muted mb-1">Completed Tasks</h6>
+                        <h3 class="mb-0 fw-bold"><%= todayTodos ? todayTodos.filter(todo => todo.completed).length : 0 %></h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6 col-lg-3">
+                <div class="card h-100 rounded-3 border-0 shadow-sm">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                      <div class="rounded-circle p-3 me-3" style="background-color: rgba(13, 202, 240, 0.1);">
+                        <i class="far fa-calendar-alt fs-4 text-info"></i>
+                      </div>
+                      <div>
+                        <h6 class="card-title fs-6 text-muted mb-1">Appointments</h6>
+                        <h3 class="mb-0 fw-bold"><%= todayAppointments ? todayAppointments.length : 0 %></h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Todos and Appointments -->
+  <div class="row mb-3">
+    <!-- Today's Todo List -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100 mb-3">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+              <i class="fas fa-tasks me-2 text-primary"></i>
+              Today's Todo List
+            </h5>
+            <a href="/todos/create" class="btn btn-sm btn-primary rounded-pill px-3">
+              <i class="fas fa-plus me-1"></i>
+              Add Todo
+            </a>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <% if (todayTodos && todayTodos.length > 0) { %>
+            <div class="list-group list-group-flush">
+              <% todayTodos.forEach(todo => { %>
+                <div class="list-group-item border-0 border-bottom py-3 px-4">
+                  <div class="d-flex align-items-center">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input todo-checkbox" data-id="<%= todo.id %>" <%= todo.completed ? 'checked' : '' %>>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                      <h6 class="mb-0 <%= todo.completed ? 'text-decoration-line-through text-muted' : 'fw-bold' %>">
+                        <%= todo.title %>
+                      </h6>
+                      <% if (todo.description) { %>
+                      <p class="mb-0 small text-muted"><%= todo.description %></p>
+                      <% } %>
+                      <div class="d-flex align-items-center mt-1">
+                        <% if (todo.priority === 'high') { %>
+                          <span class="badge rounded-pill bg-danger me-2">High</span>
+                        <% } else if (todo.priority === 'medium') { %>
+                          <span class="badge rounded-pill bg-warning text-dark me-2">Medium</span>
+                        <% } else { %>
+                          <span class="badge rounded-pill bg-success me-2">Low</span>
+                        <% } %>
+                        <small class="text-muted">
+                          <i class="far fa-clock me-1"></i>
+                          Due: <%= new Date(todo.due_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="ms-2">
+                      <a href="/todos/edit/<%= todo.id %>" class="btn btn-sm btn-light rounded-circle">
+                        <i class="fas fa-edit text-secondary"></i>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <img src="/img/empty-todo.svg" alt="No todos" class="mb-3" style="width: 100px; opacity: 0.7;">
+              <p class="text-muted mb-2">No tasks scheduled for today!</p>
+              <a href="/todos/create" class="btn btn-primary btn-sm rounded-pill px-3 mt-2">
+                <i class="fas fa-plus me-1"></i>
+                Add a Todo
+              </a>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Today's Appointments -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100 mb-3">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+              <i class="far fa-calendar-alt me-2 text-info"></i>
+              Today's Schedule
+            </h5>
+            <a href="/appointments/create" class="btn btn-sm btn-info text-white rounded-pill px-3">
+              <i class="fas fa-plus me-1"></i>
+              Add Appointment
+            </a>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <% if (todayAppointments && todayAppointments.length > 0) { %>
+            <div class="list-group list-group-flush">
+              <% todayAppointments.sort((a, b) => new Date(a.start_time) - new Date(b.start_time)).forEach(appointment => { %>
+                <div class="list-group-item border-0 border-bottom py-3 px-4">
+                  <div class="d-flex">
+                    <div class="me-3 text-center">
+                      <span class="d-block fw-bold" style="font-size: 1.1rem; min-width: 60px; color: var(--primary-color);">
+                        <%= new Date(appointment.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                      </span>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0 fw-bold"><%= appointment.title %></h6>
+                      <% if (appointment.description) { %>
+                        <p class="mb-1 small text-muted"><%= appointment.description %></p>
+                      <% } %>
+                      <div class="d-flex align-items-center mt-1">
+                        <% if (appointment.location) { %>
+                          <small class="text-muted me-3">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            <%= appointment.location %>
+                          </small>
+                        <% } %>
+                        <small class="text-muted">
+                          <i class="far fa-clock me-1"></i>
+                          <%= new Date(appointment.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %> -
+                          <%= new Date(appointment.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="ms-2">
+                      <a href="/appointments/edit/<%= appointment.id %>" class="btn btn-sm btn-light rounded-circle">
+                        <i class="fas fa-edit text-secondary"></i>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <img src="/img/empty-calendar.svg" alt="No appointments" class="mb-3" style="width: 100px; opacity: 0.7;">
+              <p class="text-muted mb-2">No appointments scheduled for today!</p>
+              <a href="/appointments/create" class="btn btn-info text-white btn-sm rounded-pill px-3 mt-2">
+                <i class="fas fa-plus me-1"></i>
+                Schedule an Appointment
+              </a>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Timeline View -->
+  <div class="row mb-3">
+    <div class="col">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-0 py-3">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-stream me-2 text-secondary"></i>
+            Today's Timeline
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline-container">
+            <% 
+              // Combine todos and appointments in a single timeline
+              const timelineItems = [];
+              
+              // Add todos to timeline
+              if (todayTodos && todayTodos.length > 0) {
+                todayTodos.forEach(todo => {
+                  timelineItems.push({
+                    type: 'todo',
+                    time: new Date(todo.due_date),
+                    data: todo
+                  });
+                });
+              }
+              
+              // Add appointments to timeline
+              if (todayAppointments && todayAppointments.length > 0) {
+                todayAppointments.forEach(appointment => {
+                  timelineItems.push({
+                    type: 'appointment',
+                    time: new Date(appointment.start_time),
+                    data: appointment
+                  });
+                });
+              }
+              
+              // Sort timeline items by time
+              timelineItems.sort((a, b) => a.time - b.time);
+            %>
+            
+            <% if (timelineItems.length > 0) { %>
+              <div class="timeline">
+                <% timelineItems.forEach((item, index) => { %>
+                  <div class="timeline-item">
+                    <div class="timeline-marker <%= item.type === 'todo' ? 'bg-primary' : 'bg-info' %>"></div>
+                    <div class="timeline-content">
+                      <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body p-3">
+                          <div class="d-flex">
+                            <div class="timeline-time me-3 text-center">
+                              <div class="d-flex flex-column align-items-center">
+                                <span class="badge rounded-pill <%= item.type === 'todo' ? 'bg-primary' : 'bg-info' %> mb-2 px-3 py-2">
+                                  <%= item.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                </span>
+                                <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                  <%= item.type === 'todo' ? 'Due' : 'Start' %>
+                                </small>
+                              </div>
+                            </div>
+                            <div class="flex-grow-1 ms-2">
+                              <div class="d-flex align-items-center mb-2">
+                                <h6 class="mb-0 fw-bold <%= item.type === 'todo' && item.data.completed ? 'text-decoration-line-through text-muted' : '' %>">
+                                  <%= item.data.title %>
+                                </h6>
+                                <span class="badge ms-2 <%= item.type === 'todo' ? 'bg-primary-subtle text-primary' : 'bg-info-subtle text-info' %>">
+                                  <%= item.type === 'todo' ? 'Task' : 'Appointment' %>
+                                </span>
+                              </div>
+                              <% if (item.data.description) { %>
+                                <p class="mb-2 small text-secondary"><%= item.data.description %></p>
+                              <% } %>
+                              <div class="d-flex align-items-center">
+                                <% if (item.type === 'todo') { %>
+                                  <% if (item.data.priority === 'high') { %>
+                                    <span class="badge rounded-pill bg-danger me-2">High</span>
+                                  <% } else if (item.data.priority === 'medium') { %>
+                                    <span class="badge rounded-pill bg-warning text-dark me-2">Medium</span>
+                                  <% } else { %>
+                                    <span class="badge rounded-pill bg-success me-2">Low</span>
+                                  <% } %>
+                                  <div class="form-check form-check-inline ms-2">
+                                    <input type="checkbox" class="form-check-input todo-checkbox" 
+                                            data-id="<%= item.data.id %>" 
+                                            <%= item.data.completed ? 'checked' : '' %>>
+                                    <label class="form-check-label small text-muted">Mark as complete</label>
+                                  </div>
+                                <% } else { %>
+                                  <% if (item.data.location) { %>
+                                    <small class="text-muted me-3">
+                                      <i class="fas fa-map-marker-alt me-1"></i>
+                                      <%= item.data.location %>
+                                    </small>
+                                  <% } %>
+                                  <small class="text-muted">
+                                    <i class="far fa-clock me-1"></i>
+                                    <%= new Date(item.data.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %> -
+                                    <%= new Date(item.data.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                  </small>
+                                <% } %>
+                              </div>
+                            </div>
+                            <div class="ms-2">
+                              <a href="<%= item.type === 'todo' ? `/todos/edit/${item.data.id}` : `/appointments/edit/${item.data.id}` %>" class="btn btn-sm btn-light rounded-circle">
+                                <i class="fas fa-edit text-secondary"></i>
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+            <% } else { %>
+              <div class="text-center py-5">
+                <img src="/img/empty-timeline.svg" onerror="this.src='/img/empty-todo.svg'" alt="Empty timeline" class="mb-3" style="width: 100px; opacity: 0.7;">
+                <p class="text-muted mb-2">No activities scheduled for today!</p>
+                <div class="mt-3">
+                  <a href="/todos/create" class="btn btn-primary btn-sm rounded-pill px-3 me-2">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Todo
+                  </a>
+                  <a href="/appointments/create" class="btn btn-info btn-sm text-white rounded-pill px-3">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Appointment
+                  </a>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+  
+  .timeline:before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: linear-gradient(to bottom, #e9ecef 0%, #dee2e6 100%);
+  }
+  
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  
+  .timeline-marker {
+    position: absolute;
+    top: 10px;
+    left: -24px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px white;
+    z-index: 1;
+  }
+  
+  .timeline-time {
+    min-width: 95px;
+  }
+  
+  .timeline-content .card {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .timeline-content .card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .form-check-input.todo-checkbox:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle todo checkbox changes
+    document.querySelectorAll('.todo-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', async function() {
+        const todoId = this.getAttribute('data-id');
+        const completed = this.checked;
+        
+        try {
+          const response = await fetch(`/api/todos/${todoId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ completed })
+          });
+          
+          if (response.ok) {
+            // Update the UI
+            const todoItem = this.closest('.list-group-item');
+            const todoTitle = todoItem.querySelector('h6');
+            
+            if (completed) {
+              todoTitle.classList.add('text-decoration-line-through', 'text-muted');
+            } else {
+              todoTitle.classList.remove('text-decoration-line-through', 'text-muted');
+            }
+            
+            // If we're in timeline view, update that as well
+            const timelineTitles = document.querySelectorAll(`.timeline [data-id="${todoId}"]`);
+            timelineTitles.forEach(checkbox => {
+              const timelineItem = checkbox.closest('.timeline-item');
+              const timelineTitle = timelineItem.querySelector('h6');
+              
+              if (completed) {
+                timelineTitle.classList.add('text-decoration-line-through', 'text-muted');
+              } else {
+                timelineTitle.classList.remove('text-decoration-line-through', 'text-muted');
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error updating todo:', error);
+        }
+      });
+    });
+  });
+</script>
+
+<%- include('./partials/footer') %> 

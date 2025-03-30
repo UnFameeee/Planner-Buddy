@@ -1,123 +1,119 @@
 <%- include('./partials/header') %>
 
-<div class="content">
-  <div class="main-content">
-    <div class="container py-4">
-      <div class="row g-4">
-        <!-- Welcome Section -->
-        <div class="col-12">
-          <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <h1 class="h3 mb-2">Welcome back, <%= user.username %>! 👋</h1>
-                  <p class="text-muted mb-0">Here's what's happening with your tasks and appointments.</p>
-                </div>
-                <a href="/auth/logout" class="btn btn-outline-primary">
-                  <i class="fas fa-sign-out-alt me-2"></i>
-                  Logout
-                </a>
-              </div>
+<div class="container-fluid">
+  <div class="row g-4">
+    <!-- Welcome Section -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h1 class="h3 mb-2">Welcome back, <%= user.username %>! 👋</h1>
+              <p class="text-muted mb-0">Here's what's happening with your tasks and appointments.</p>
             </div>
+            <a href="/auth/logout" class="btn btn-outline-primary">
+              <i class="fas fa-sign-out-alt me-2"></i>
+              Logout
+            </a>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Todos Section -->
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-0 py-3">
-              <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                  <i class="fas fa-tasks me-2" style="color: var(--primary-color);"></i>
-                  Your Todos
-                </h5>
-                <a href="/todos/create" class="btn btn-primary btn-sm">
-                  <i class="fas fa-plus me-1"></i>
-                  Add Todo
-                </a>
-              </div>
-            </div>
-            <div class="card-body">
-              <% if (user.todos && user.todos.length > 0) { %>
-                <div class="list-group list-group-flush">
-                  <% user.todos.slice(0, 5).forEach(todo => { %>
-                    <div class="list-group-item border-0 px-0">
-                      <div class="d-flex align-items-center">
-                        <div class="form-check">
-                          <input type="checkbox" class="form-check-input" <%= todo.completed ? 'checked' : '' %>>
-                        </div>
-                        <div class="ms-3 flex-grow-1">
-                          <h6 class="mb-0 <%= todo.completed ? 'text-decoration-line-through text-muted' : '' %>">
-                            <%= todo.title %>
-                          </h6>
-                          <small class="text-muted">
-                            Due: <%= new Date(todo.due_date).toLocaleDateString() %>
-                          </small>
-                        </div>
-                        <span class="badge rounded-pill" style="background-color: '<%= todo.priority === 'high' ? '#dc3545' : todo.priority === 'medium' ? '#ffc107' : '#28a745' %>'">
-                          <%= todo.priority %>
-                        </span>
-                      </div>
-                    </div>
-                  <% }) %>
-                </div>
-                <% if (user.todos.length > 5) { %>
-                  <div class="text-center mt-3">
-                    <a href="/todos/all" class="btn btn-link text-primary">View all todos</a>
-                  </div>
-                <% } %>
-              <% } else { %>
-                <div class="text-center py-4">
-                  <img src="/img/empty-todo.svg" alt="No todos" class="mb-3" style="width: 120px;">
-                  <p class="text-muted mb-0">No todos yet. Add one to get started!</p>
-                </div>
-              <% } %>
-            </div>
+    <!-- Todos Section -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fas fa-tasks me-2" style="color: var(--primary-color);"></i>
+              Your Todos
+            </h5>
+            <a href="/todos/create" class="btn btn-primary btn-sm">
+              <i class="fas fa-plus me-1"></i>
+              Add Todo
+            </a>
           </div>
         </div>
-
-        <!-- Appointments Section -->
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-0 py-3">
-              <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                  <i class="far fa-calendar-alt me-2" style="color: var(--primary-color);"></i>
-                  Your Appointments
-                </h5>
-                <a href="/appointments/create" class="btn btn-primary btn-sm">
-                  <i class="fas fa-plus me-1"></i>
-                  Add Appointment
-                </a>
-              </div>
-            </div>
-            <div class="card-body">
-              <% if (user.appointments && user.appointments.length > 0) { %>
-                <div class="list-group list-group-flush">
-                  <% user.appointments.slice(0, 5).forEach(appointment => { %>
-                    <div class="list-group-item border-0 px-0">
-                      <h6 class="mb-1"><%= appointment.title %></h6>
-                      <p class="mb-1 text-muted small"><%= appointment.description %></p>
-                      <div class="d-flex align-items-center text-muted small">
-                        <i class="far fa-clock me-1"></i>
-                        <%= new Date(appointment.start_time).toLocaleString() %>
-                      </div>
+        <div class="card-body">
+          <% if (user.todos && user.todos.length > 0) { %>
+            <div class="list-group list-group-flush">
+              <% user.todos.slice(0, 5).forEach(todo => { %>
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-center">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" <%= todo.completed ? 'checked' : '' %>>
                     </div>
-                  <% }) %>
-                </div>
-                <% if (user.appointments.length > 5) { %>
-                  <div class="text-center mt-3">
-                    <a href="/appointments/all" class="btn btn-link text-primary">View all appointments</a>
+                    <div class="ms-3 flex-grow-1">
+                      <h6 class="mb-0 <%= todo.completed ? 'text-decoration-line-through text-muted' : '' %>">
+                        <%= todo.title %>
+                      </h6>
+                      <small class="text-muted">
+                        Due: <%= new Date(todo.due_date).toLocaleDateString() %>
+                      </small>
+                    </div>
+                    <span class="badge rounded-pill" style="background-color: '<%= todo.priority === 'high' ? '#dc3545' : todo.priority === 'medium' ? '#ffc107' : '#28a745' %>'">
+                      <%= todo.priority %>
+                    </span>
                   </div>
-                <% } %>
-              <% } else { %>
-                <div class="text-center py-4">
-                  <img src="/img/empty-calendar.svg" alt="No appointments" class="mb-3" style="width: 120px;">
-                  <p class="text-muted mb-0">No appointments scheduled. Add one to get started!</p>
                 </div>
-              <% } %>
+              <% }) %>
             </div>
+            <% if (user.todos.length > 5) { %>
+              <div class="text-center mt-3">
+                <a href="/todos/all" class="btn btn-link text-primary">View all todos</a>
+              </div>
+            <% } %>
+          <% } else { %>
+            <div class="text-center py-4">
+              <img src="/img/empty-todo.svg" alt="No todos" class="mb-3" style="width: 120px;">
+              <p class="text-muted mb-0">No todos yet. Add one to get started!</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appointments Section -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="far fa-calendar-alt me-2" style="color: var(--primary-color);"></i>
+              Your Appointments
+            </h5>
+            <a href="/appointments/create" class="btn btn-primary btn-sm">
+              <i class="fas fa-plus me-1"></i>
+              Add Appointment
+            </a>
           </div>
+        </div>
+        <div class="card-body">
+          <% if (user.appointments && user.appointments.length > 0) { %>
+            <div class="list-group list-group-flush">
+              <% user.appointments.slice(0, 5).forEach(appointment => { %>
+                <div class="list-group-item border-0 px-0">
+                  <h6 class="mb-1"><%= appointment.title %></h6>
+                  <p class="mb-1 text-muted small"><%= appointment.description %></p>
+                  <div class="d-flex align-items-center text-muted small">
+                    <i class="far fa-clock me-1"></i>
+                    <%= new Date(appointment.start_time).toLocaleString() %>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+            <% if (user.appointments.length > 5) { %>
+              <div class="text-center mt-3">
+                <a href="/appointments/all" class="btn btn-link text-primary">View all appointments</a>
+              </div>
+            <% } %>
+          <% } else { %>
+            <div class="text-center py-4">
+              <img src="/img/empty-calendar.svg" alt="No appointments" class="mb-3" style="width: 120px;">
+              <p class="text-muted mb-0">No appointments scheduled. Add one to get started!</p>
+            </div>
+          <% } %>
         </div>
       </div>
     </div>

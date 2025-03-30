@@ -214,11 +214,14 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item user-menu d-none">
+          <li class="nav-item user-menu">
             <a class="nav-link" href="/todos/all"><i class="fas fa-tasks"></i> Todos</a>
           </li>
-          <li class="nav-item user-menu d-none">
+          <li class="nav-item user-menu">
             <a class="nav-link" href="/appointments/calendar"><i class="far fa-calendar-alt"></i> Calendar</a>
+          </li>
+          <li class="nav-item user-menu">
+            <a class="nav-link" href="/dashboard/statistics"><i class="fas fa-chart-bar"></i> Statistics</a>
           </li>
         </ul>
         <ul class="navbar-nav">
@@ -257,6 +260,28 @@
       </div>
       <hr>
       <h6 class="sidebar-heading d-flex align-items-center mt-4 mb-3 text-muted">
+        <i class="fas fa-filter me-2"></i> Menu
+      </h6>
+      <ul class="nav flex-column quick-filters">
+        <li class="nav-item">
+          <a class="nav-link d-flex align-items-center" href="/dashboard">
+            <span class="filter-icon">
+              <i class="fas fa-home text-success"></i> <!-- Changed color from text-info to text-success -->
+            </span>
+            <span class="filter-text">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link d-flex align-items-center" href="/dashboard/statistics">
+            <span class="filter-icon">
+              <i class="fas fa-chart-bar text-info"></i>
+            </span>
+            <span class="filter-text">Statistics</span>
+          </a>
+        </li>
+      </ul>
+
+      <h6 class="sidebar-heading d-flex align-items-center mt-4 mb-3 text-muted">
         <i class="fas fa-filter me-2"></i> Quick Filters
       </h6>
       <ul class="nav flex-column quick-filters">
@@ -266,7 +291,7 @@
               <i class="far fa-clock"></i>
             </span>
             <span class="filter-text">Pending Todos</span>
-            <span class="filter-count badge rounded-pill bg-primary">0</span>
+            <!-- <span class="filter-count badge rounded-pill bg-primary">0</span> -->
           </a>
         </li>
         <li class="nav-item">
@@ -275,7 +300,7 @@
               <i class="fas fa-check"></i>
             </span>
             <span class="filter-text">Completed Todos</span>
-            <span class="filter-count badge rounded-pill bg-success">0</span>
+            <!-- <span class="filter-count badge rounded-pill bg-success">0</span> -->
           </a>
         </li>
         <li class="nav-item">
@@ -284,7 +309,7 @@
               <i class="fas fa-exclamation-circle text-danger"></i>
             </span>
             <span class="filter-text">High Priority</span>
-            <span class="filter-count badge rounded-pill bg-danger">0</span>
+            <!-- <span class="filter-count badge rounded-pill bg-danger">0</span> -->
           </a>
         </li>
         <li class="nav-item">
@@ -293,7 +318,7 @@
               <i class="fas fa-calendar-day text-info"></i>
             </span>
             <span class="filter-text">Today's Schedule</span>
-            <span class="filter-count badge rounded-pill bg-info">0</span>
+            <!-- <span class="filter-count badge rounded-pill bg-info">0</span> -->
           </a>
         </li>
         <li class="nav-item">
@@ -302,7 +327,16 @@
               <i class="fas fa-calendar-week text-primary"></i>
             </span>
             <span class="filter-text">This Week</span>
-            <span class="filter-count badge rounded-pill bg-primary">0</span>
+            <!-- <span class="filter-count badge rounded-pill bg-primary">0</span> -->
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link d-flex align-items-center" href="/appointments/calendar?view=month">
+            <span class="filter-icon">
+              <i class="fas fa-calendar-alt text-success"></i>
+            </span>
+            <span class="filter-text">This Month</span>
+            <!-- <span class="filter-count badge rounded-pill bg-primary">0</span> -->
           </a>
         </li>
       </ul>

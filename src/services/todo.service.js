@@ -222,6 +222,32 @@ const processTodoReminders = async () => {
   }
 };
 
+// Get todos by date
+const getTodosByDate = async (userId, date) => {
+  try {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const todos = await Todo.findAll({
+      where: {
+        user_id: userId,
+        due_date: {
+          [Op.between]: [startOfDay, endOfDay]
+        },
+        deleted: false
+      },
+      order: [['due_date', 'ASC']]
+    });
+    
+    return todos;
+  } catch (error) {
+    throw new Error(`Error fetching todos by date: ${error.message}`);
+  }
+};
+
 module.exports = {
   getUserTodos,
   getTodoById,
@@ -229,5 +255,6 @@ module.exports = {
   updateTodo,
   deleteTodo,
   markTodoAsCompleted,
-  processTodoReminders
+  processTodoReminders,
+  getTodosByDate
 }; 

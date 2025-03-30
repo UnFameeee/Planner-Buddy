@@ -112,46 +112,9 @@ app.use('/todos', authenticate, todoRoutes);
 app.use('/appointments', authenticate, appointmentRoutes);
 app.use('/settings', authenticate, settingRoutes);
 
-// Dashboard route (modified to not require authentication)
-app.get('/dashboard', authenticate, async (req, res) => {
-  try {
-    // Get theme color from settings
-    let themeColor = '#72d1a8';
-    try {
-      themeColor = await settingService.getThemeColor();
-    } catch (error) {
-      console.error('Error getting theme color:', error);
-    }
-
-    // If authentication failed but we're still here (due to our modified middleware)
-    if (!req.user) {
-      return res.render('dashboard', {
-        title: 'Dashboard | Planner Buddy',
-        themeColor,
-        user: null,
-        error: req.authError || 'Authentication required'
-      });
-    }
-
-    // Get user with todos and appointments
-    const user = await User.findByPk(req.user.id, {
-      include: ['todos', 'appointments'],
-      order: [
-        ['todos', 'created_at', 'DESC'],
-        ['appointments', 'start_time', 'ASC']
-      ]
-    });
-
-    res.render('dashboard', {
-      title: 'Dashboard | Planner Buddy',
-      themeColor,
-      user
-    });
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    res.status(500).send('Server Error');
-  }
-});
+// Dashboard routes
+const dashboardRoutes = require('./routes/dashboard.routes');
+app.use('/dashboard', authenticate, dashboardRoutes);
 
 // 404 handler - must be before error handler
 app.use(async (req, res, next) => {

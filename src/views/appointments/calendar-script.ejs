@@ -181,7 +181,7 @@
                       <button type="button" class="btn btn-outline-primary view-btn" data-id="${appointment.id}">
                         <i class="fas fa-eye"></i>
                       </button>
-                      <a href="/appointments/view/edit/${appointment.id}" class="btn btn-outline-secondary">
+                      <a href="/appointments/edit/${appointment.id}" class="btn btn-outline-secondary">
                         <i class="fas fa-edit"></i>
                       </a>
                       <button type="button" class="btn btn-outline-danger delete-btn" data-id="${appointment.id}">
@@ -601,7 +601,7 @@
           modalNotes.textContent = appointment.notes || 'No notes';
           
           // Set edit button link
-          editAppointmentBtn.href = `/appointments/view/edit/${appointment.id}`;
+          editAppointmentBtn.href = `/appointments/edit/${appointment.id}`;
           
           // Show modal
           appointmentModal.show();
