@@ -116,6 +116,10 @@ app.use('/settings', authenticate, settingRoutes);
 const dashboardRoutes = require('./routes/dashboard.routes');
 app.use('/dashboard', authenticate, dashboardRoutes);
 
+// Profile routes
+const profileRoutes = require('./routes/profile.routes');
+app.use('/profile', authenticate, profileRoutes);
+
 // 404 handler - must be before error handler
 app.use(async (req, res, next) => {
   try {

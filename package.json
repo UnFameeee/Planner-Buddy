@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "init-db": "node src/database/migrations/init-db.js"
+    "init-db": "node src/database/migrations/init-db.js",
+    "migration:add-role": "node src/database/migrations/add-role-to-users.js"
   },
   "dependencies": {
     "axios": "^0.27.2",

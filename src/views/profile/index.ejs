@@ -1,0 +1,281 @@
+<%- include('../partials/header') %>
+
+<div class="container py-5">
+  <div class="row">
+    <div class="col-md-12 mb-4">
+      <h2 class="text-center">User Profile</h2>
+      <p class="text-center text-muted">Manage your account information</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Profile Details Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0">Profile Information</h5>
+        </div>
+        <div class="card-body">
+          <form id="profileForm">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" name="username" value="<%= user.username %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="email" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="timezone" class="form-label">Timezone</label>
+              <select class="form-select" id="timezone" name="timezone">
+                <option value="UTC" <%= user.timezone === 'UTC' ? 'selected' : '' %>>UTC</option>
+                <option value="Asia/Ho_Chi_Minh" <%= user.timezone === 'Asia/Ho_Chi_Minh' ? 'selected' : '' %>>Vietnam (GMT+7)</option>
+                <option value="America/New_York" <%= user.timezone === 'America/New_York' ? 'selected' : '' %>>Eastern Time (US & Canada)</option>
+                <option value="America/Chicago" <%= user.timezone === 'America/Chicago' ? 'selected' : '' %>>Central Time (US & Canada)</option>
+                <option value="America/Denver" <%= user.timezone === 'America/Denver' ? 'selected' : '' %>>Mountain Time (US & Canada)</option>
+                <option value="America/Los_Angeles" <%= user.timezone === 'America/Los_Angeles' ? 'selected' : '' %>>Pacific Time (US & Canada)</option>
+                <option value="Europe/London" <%= user.timezone === 'Europe/London' ? 'selected' : '' %>>London</option>
+                <option value="Europe/Paris" <%= user.timezone === 'Europe/Paris' ? 'selected' : '' %>>Paris</option>
+                <option value="Asia/Tokyo" <%= user.timezone === 'Asia/Tokyo' ? 'selected' : '' %>>Tokyo</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Member Since</label>
+              <input type="text" class="form-control" value="<%= new Date(user.created_at).toLocaleDateString() %>" readonly>
+            </div>
+            
+            <% if (user.role === 'admin') { %>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <input type="text" class="form-control" value="<%= user.role %>" readonly>
+            </div>
+            <% } %>
+            
+            <button type="submit" class="btn btn-primary">Update Profile</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0">Change Password</h5>
+        </div>
+        <div class="card-body">
+          <form id="passwordForm">
+            <div class="mb-3">
+              <label for="currentPassword" class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword" name="newPassword" required>
+              <div class="form-text">Minimum 8 characters with at least one uppercase letter, one lowercase letter, and one number</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Change Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Management - Chỉ hiển thị với admin -->
+  <!-- <% if (user.role === 'admin') { %>
+  <div class="row mt-2">
+    <div class="col-md-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0">Account Management</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">Account Status</h6>
+              <p class="mb-0 text-muted"><span class="badge bg-success">Active</span></p>
+            </div>
+            <div>
+              <a href="/settings" class="btn btn-outline-primary">View Settings</a>
+              <a href="/admin/users" class="btn btn-outline-info">Manage Users</a>
+              <button id="logoutBtn" class="btn btn-outline-danger">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } else { %>
+  <!-- User actions -->
+  <div class="row mt-2">
+    <div class="col-md-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0">User Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">Account Status</h6>
+              <p class="mb-0 text-muted"><span class="badge bg-success">Active</span></p>
+            </div>
+            <div>
+              <a href="/settings" class="btn btn-outline-primary">View Settings</a>
+              <button id="logoutBtn" class="btn btn-outline-danger">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %> -->
+</div>
+
+<!-- Toast for notifications -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <strong class="me-auto" id="toastTitle">Notification</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toastMessage">
+      Hello, world! This is a toast message.
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const profileForm = document.getElementById('profileForm');
+    const passwordForm = document.getElementById('passwordForm');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const toast = new bootstrap.Toast(document.getElementById('liveToast'));
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Show toast notification
+    function showToast(title, message, success = true) {
+      toastTitle.textContent = title;
+      toastMessage.textContent = message;
+      
+      // Set toast color based on success/error
+      const toastEl = document.getElementById('liveToast');
+      if (success) {
+        toastEl.classList.remove('bg-danger', 'text-white');
+        toastEl.classList.add('bg-success', 'text-white');
+      } else {
+        toastEl.classList.remove('bg-success', 'text-white');
+        toastEl.classList.add('bg-danger', 'text-white');
+      }
+      
+      toast.show();
+    }
+    
+    // Update profile
+    profileForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      try {
+        const response = await fetch('/profile/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            timezone: document.getElementById('timezone').value
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast('Success', 'Profile updated successfully', true);
+        } else {
+          showToast('Error', data.message, false);
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        showToast('Error', 'Failed to update profile', false);
+      }
+    });
+    
+    // Change password
+    passwordForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      if (newPassword !== confirmPassword) {
+        showToast('Error', 'Passwords do not match', false);
+        return;
+      }
+      
+      try {
+        const response = await fetch('/profile/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            currentPassword: document.getElementById('currentPassword').value,
+            newPassword: newPassword,
+            confirmPassword: confirmPassword
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast('Success', 'Password changed successfully', true);
+          passwordForm.reset();
+        } else {
+          showToast('Error', data.message, false);
+        }
+      } catch (error) {
+        console.error('Error changing password:', error);
+        showToast('Error', 'Failed to change password', false);
+      }
+    });
+    
+    // Logout
+    logoutBtn.addEventListener('click', async function() {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          localStorage.removeItem('token');
+          window.location.href = '/auth/login';
+        } else {
+          showToast('Error', data.message, false);
+        }
+      } catch (error) {
+        console.error('Error during logout:', error);
+        showToast('Error', 'Failed to logout', false);
+      }
+    });
+  });
+</script>
+
+<%- include('../partials/footer') %> 
