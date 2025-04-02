@@ -1,4 +1,4 @@
-const { Appointment, User } = require('../database/models');
+const { Appointment, User, EmailQueue } = require('../database/models');
 const { Op } = require('sequelize');
 const { sendAppointmentReminder } = require('../utils/email.util');
 const emailQueueService = require('./email_queue.service');
@@ -166,13 +166,16 @@ const createAppointment = async (appointmentData, userId) => {
     // Đảm bảo các trường reminder_settings được khởi tạo đúng nếu không có
     if (!appointmentData.reminder_settings) {
       appointmentData.reminder_settings = {
-        enabled: true,
-        minutes_before: 30,
-        email_notification: true,
+        enabled: Boolean(appointmentData.set_reminder), // Use set_reminder value from form if available
+        minutes_before: appointmentData.set_reminder ? parseInt(appointmentData.reminderTime || 30) : 30,
+        email_notification: appointmentData.reminder_method ? 
+          (appointmentData.reminder_method === 'email' || appointmentData.reminder_method === 'both') : 
+          true,
         reminder_type: 'once'
       };
     }
     
+    // Create the appointment
     const newAppointment = await Appointment.create({
       ...appointmentData,
       user_id: userId
@@ -188,17 +191,21 @@ const createAppointment = async (appointmentData, userId) => {
     }
     
     // Tạo email reminder
-    console.log('Creating email reminder for the appointment...');
-    try {
-      const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
-      if (emailQueue) {
-        console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
-      } else {
-        console.log('No email reminder was created (reminder time may have passed or notifications disabled)');
+    if (appointmentData.set_reminder) {
+      console.log('Creating email reminder for the appointment...');
+      try {
+        const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
+        if (emailQueue) {
+          console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
+        } else {
+          console.log('No email reminder was created (reminder time may have passed or notifications disabled)');
+        }
+      } catch (reminderError) {
+        console.error('Error creating email reminder:', reminderError);
+        // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
       }
-    } catch (reminderError) {
-      console.error('Error creating email reminder:', reminderError);
-      // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+    } else {
+      console.log('No reminder requested, skipping email queue creation');
     }
     
     return newAppointment;
@@ -228,35 +235,75 @@ const updateAppointment = async (appointmentId, appointmentData, userId) => {
     
     // Lưu thời gian cũ để kiểm tra xem có thay đổi không
     const oldStartTime = appointment.start_time;
+    const oldReminderSettings = appointment.reminder_settings;
+    
+    // Prepare reminder settings if needed
+    if (appointmentData.set_reminder !== undefined && !appointmentData.reminder_settings) {
+      appointmentData.reminder_settings = {
+        enabled: Boolean(appointmentData.set_reminder),
+        minutes_before: appointmentData.set_reminder ? parseInt(appointmentData.reminderTime || 30) : 30,
+        email_notification: appointmentData.reminder_method ? 
+          (appointmentData.reminder_method === 'email' || appointmentData.reminder_method === 'both') : 
+          true,
+        reminder_type: 'once'
+      };
+    }
     
     // Update appointment
     await appointment.update(appointmentData);
     console.log(`Appointment updated successfully, ID: ${appointment.id}`);
     
-    // Nếu thời gian hoặc reminder settings thay đổi, cập nhật email reminder
-    if (new Date(oldStartTime).getTime() !== new Date(appointment.start_time).getTime() || 
-        appointmentData.reminder_settings) {
-      
+    // Check if time, reminder settings or reminder status changed
+    const timeChanged = new Date(oldStartTime).getTime() !== new Date(appointment.start_time).getTime();
+    const reminderSettingsChanged = JSON.stringify(oldReminderSettings) !== JSON.stringify(appointment.reminder_settings);
+    const reminderStatusChanged = oldReminderSettings?.enabled !== appointment.reminder_settings?.enabled;
+    
+    if (timeChanged || reminderSettingsChanged || reminderStatusChanged) {
       console.log('Start time or reminder settings changed, updating email reminder...');
       
-      // Lấy thông tin user
-      const user = await User.findByPk(userId);
-      if (!user) {
-        console.error(`User not found with ID: ${userId}`);
-        throw new Error('User not found');
+      // Cancel any existing reminders
+      try {
+        const pendingEmails = await EmailQueue.findAll({
+          where: {
+            appointment_id: appointmentId,
+            status: 'pending'
+          }
+        });
+        
+        console.log(`Found ${pendingEmails.length} pending email reminders to cancel`);
+        
+        // Cancel all pending emails
+        for (const email of pendingEmails) {
+          await email.update({ status: 'canceled' });
+          console.log(`Canceled email reminder with ID: ${email.id}`);
+        }
+      } catch (emailError) {
+        console.error('Error canceling existing email reminders:', emailError);
       }
       
-      // Tạo email reminder mới
-      try {
-        const emailQueue = await emailQueueService.createAppointmentReminder(appointment, user);
-        if (emailQueue) {
-          console.log(`New email reminder created successfully with queue ID: ${emailQueue.id}`);
-        } else {
-          console.log('No new email reminder was created (reminder time may have passed or notifications disabled)');
+      // Create new reminder if enabled
+      if (appointment.reminder_settings?.enabled) {
+        // Lấy thông tin user
+        const user = await User.findByPk(userId);
+        if (!user) {
+          console.error(`User not found with ID: ${userId}`);
+          throw new Error('User not found');
         }
-      } catch (reminderError) {
-        console.error('Error creating updated email reminder:', reminderError);
-        // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+        
+        // Tạo email reminder mới
+        try {
+          const emailQueue = await emailQueueService.createAppointmentReminder(appointment, user);
+          if (emailQueue) {
+            console.log(`New email reminder created successfully with queue ID: ${emailQueue.id}`);
+          } else {
+            console.log('No new email reminder was created (reminder time may have passed or notifications disabled)');
+          }
+        } catch (reminderError) {
+          console.error('Error creating updated email reminder:', reminderError);
+          // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+        }
+      } else {
+        console.log('Reminders are now disabled, no new reminder created');
       }
     } else {
       console.log('No changes to start time or reminder settings, not updating email reminder');
@@ -281,6 +328,27 @@ const deleteAppointment = async (appointmentId, userId) => {
     
     if (!appointment) {
       throw new Error('Appointment not found or access denied');
+    }
+    
+    // Find any pending email reminders for this appointment and cancel them
+    try {
+      const pendingEmails = await EmailQueue.findAll({
+        where: {
+          appointment_id: appointmentId,
+          status: 'pending'
+        }
+      });
+      
+      console.log(`Found ${pendingEmails.length} pending email reminders for appointment ${appointmentId}`);
+      
+      // Cancel all pending emails
+      for (const email of pendingEmails) {
+        await email.update({ status: 'canceled' });
+        console.log(`Canceled email reminder with ID: ${email.id}`);
+      }
+    } catch (emailError) {
+      console.error('Error canceling email reminders:', emailError);
+      // Continue with appointment deletion even if canceling emails fails
     }
     
     // Delete appointment
