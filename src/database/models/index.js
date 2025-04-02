@@ -81,6 +81,6 @@ module.exports = {
   Todo,
   Appointment,
   Setting,
-  EmailQueue,
-  EmailProgress
+  EmailProgress,
+  EmailQueue
 }; 
