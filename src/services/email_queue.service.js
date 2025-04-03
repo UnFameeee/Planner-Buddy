@@ -63,6 +63,7 @@ const addToQueue = async (emailData) => {
 const getEmailsToTransfer = async () => {
   try {
     const now = new Date();
+    console.log(`Checking emails to transfer at: ${now.toISOString()}`);
 
     // Lấy danh sách email trong queue mà đã đến thời gian gửi
     const emailsToTransfer = await EmailQueue.findAll({
@@ -86,16 +87,26 @@ const getEmailsToTransfer = async () => {
       ]
     });
 
+    console.log(`Found ${emailsToTransfer.length} potential emails to transfer`);
+
     // Lọc dựa trên múi giờ của người dùng
     const filteredEmails = emailsToTransfer.filter(email => {
-      const userTimezone = email.timezone || email.user.timezone || 'UTC';
+      const userTimezone = email.timezone || email.user?.timezone || 'UTC';
       const scheduledTimeInUserTimezone = DateTime.fromJSDate(email.scheduled_time)
         .setZone(userTimezone);
       const nowInUserTimezone = DateTime.now().setZone(userTimezone);
 
+      console.log(`Email ID: ${email.id}, Scheduled time in ${userTimezone}: ${scheduledTimeInUserTimezone.toISO()}, Now: ${nowInUserTimezone.toISO()}`);
+
       // Chỉ trả về email nếu thời gian đã tới theo múi giờ của người dùng
       return scheduledTimeInUserTimezone <= nowInUserTimezone;
     });
+
+    console.log(`${filteredEmails.length} emails are ready to be transferred to progress`);
+    
+    if (filteredEmails.length > 0) {
+      console.log(`Email IDs to transfer: ${filteredEmails.map(e => e.id).join(', ')}`);
+    }
 
     return filteredEmails;
   } catch (error) {
@@ -176,15 +187,11 @@ const createAppointmentReminder = async (appointment, user) => {
     const minutesBefore = reminderSettings.minutes_before || 30;
     const startTime = new Date(appointment.start_time);
     const scheduledTime = new Date(startTime.getTime() - minutesBefore * 60 * 1000);
+    const now = new Date();
     
+    console.log(`Current time: ${now.toISOString()}`);
     console.log(`Appointment start time: ${startTime.toISOString()}`);
     console.log(`Calculated reminder time (${minutesBefore} mins before): ${scheduledTime.toISOString()}`);
-
-    // Nếu thời gian gửi đã qua thì không tạo reminder
-    if (scheduledTime < new Date()) {
-      console.log('Reminder time has already passed, skipping reminder creation');
-      return null;
-    }
 
     // Kiểm tra xem đã có reminder cho appointment này chưa
     const existingReminders = await EmailQueue.findAll({

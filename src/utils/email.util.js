@@ -1,37 +1,39 @@
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 
-// Gmail API OAuth2 configuration
-const getGmailAccessToken = async () => {
-  try {
-    // In a real app, you would use the refresh token to get a new access token
-    // For now, we'll simulate this process
-    return 'simulated_access_token';
-  } catch (error) {
-    console.error('Error getting Gmail access token:', error);
-    throw error;
-  }
-};
-
 // Create mail transporter
 const createTransporter = async () => {
   try {
-    // Get Gmail access token
-    const accessToken = await getGmailAccessToken();
-
-    // Create transporter
+    console.log('Creating email transporter with SMTP settings');
+    
+    // Lấy thông tin từ env
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = process.env.SMTP_PORT || 587;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    
+    console.log(`SMTP Server: ${smtpHost}:${smtpPort}`);
+    console.log(`SMTP User: ${smtpUser}`);
+    
+    if (!smtpUser || !smtpPass) {
+      throw new Error('SMTP user or password is missing');
+    }
+    
+    // Tạo transporter với xác thực cơ bản
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465, // true for 465, false for other ports
       auth: {
-        type: 'OAuth2',
-        user: process.env.GMAIL_USER || 'user@example.com',
-        clientId: process.env.GMAIL_CLIENT_ID,
-        clientSecret: process.env.GMAIL_CLIENT_SECRET,
-        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-        accessToken: accessToken
+        user: smtpUser,
+        pass: smtpPass
       }
     });
-
+    
+    // Verify connection
+    await transporter.verify();
+    console.log('SMTP connection verified successfully');
+    
     return transporter;
   } catch (error) {
     console.error('Error creating mail transporter:', error);
@@ -39,15 +41,35 @@ const createTransporter = async () => {
   }
 };
 
-// Send todo reminder email
-const sendTodoReminder = async (user, todo) => {
+// Send a generic email
+const sendMail = async (options) => {
   try {
+    console.log(`Sending email to: ${options.to}`);
+    console.log(`Subject: ${options.subject}`);
+    
     // Create transporter
     const transporter = await createTransporter();
 
+    // Set from address if not provided
+    if (!options.from) {
+      options.from = process.env.SMTP_USER || 'planner-buddy@example.com';
+    }
+
+    // Send email
+    const info = await transporter.sendMail(options);
+    console.log(`Email sent: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
+};
+
+// Send todo reminder email
+const sendTodoReminder = async (user, todo) => {
+  try {
     // Email content
     const mailOptions = {
-      from: process.env.GMAIL_USER || 'planner-buddy@example.com',
       to: user.email,
       subject: `Reminder: ${todo.title}`,
       html: `
@@ -63,8 +85,7 @@ const sendTodoReminder = async (user, todo) => {
     };
 
     // Send email
-    const info = await transporter.sendMail(mailOptions);
-    return info;
+    return await sendMail(mailOptions);
   } catch (error) {
     console.error('Error sending todo reminder email:', error);
     throw error;
@@ -74,12 +95,8 @@ const sendTodoReminder = async (user, todo) => {
 // Send appointment reminder email
 const sendAppointmentReminder = async (user, appointment) => {
   try {
-    // Create transporter
-    const transporter = await createTransporter();
-
     // Email content
     const mailOptions = {
-      from: process.env.GMAIL_USER || 'planner-buddy@example.com',
       to: user.email,
       subject: `Reminder: ${appointment.title}`,
       html: `
@@ -96,8 +113,7 @@ const sendAppointmentReminder = async (user, appointment) => {
     };
 
     // Send email
-    const info = await transporter.sendMail(mailOptions);
-    return info;
+    return await sendMail(mailOptions);
   } catch (error) {
     console.error('Error sending appointment reminder email:', error);
     throw error;
@@ -105,6 +121,7 @@ const sendAppointmentReminder = async (user, appointment) => {
 };
 
 module.exports = {
+  sendMail,
   sendTodoReminder,
   sendAppointmentReminder
 }; 

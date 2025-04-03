@@ -163,17 +163,31 @@ const createAppointment = async (appointmentData, userId) => {
     console.log(`Creating appointment for user: ${userId}`);
     console.log('Appointment data:', JSON.stringify(appointmentData, null, 2));
     
-    // Đảm bảo các trường reminder_settings được khởi tạo đúng nếu không có
-    if (!appointmentData.reminder_settings) {
-      appointmentData.reminder_settings = {
-        enabled: Boolean(appointmentData.set_reminder), // Use set_reminder value from form if available
-        minutes_before: appointmentData.set_reminder ? parseInt(appointmentData.reminderTime || 30) : 30,
-        email_notification: appointmentData.reminder_method ? 
-          (appointmentData.reminder_method === 'email' || appointmentData.reminder_method === 'both') : 
-          true,
-        reminder_type: 'once'
-      };
+    // Convert start_time and end_time to Date objects if they are strings
+    if (typeof appointmentData.start_time === 'string') {
+      appointmentData.start_time = new Date(appointmentData.start_time);
     }
+    if (typeof appointmentData.end_time === 'string') {
+      appointmentData.end_time = new Date(appointmentData.end_time);
+    }
+    
+    // Set set_reminder = true by default if not explicitly set
+    if (appointmentData.set_reminder === undefined) {
+      appointmentData.set_reminder = true;
+    }
+    
+    console.log(`set_reminder: ${appointmentData.set_reminder}`);
+    console.log(`reminder_method: ${appointmentData.reminder_method || 'not specified'}`);
+    
+    // Đảm bảo các trường reminder_settings được khởi tạo đúng
+    appointmentData.reminder_settings = {
+      enabled: appointmentData.set_reminder !== false, // true by default unless explicitly set to false
+      minutes_before: appointmentData.reminderTime ? parseInt(appointmentData.reminderTime) : 30,
+      email_notification: true, // always enable email notification
+      reminder_type: 'once'
+    };
+    
+    console.log('Reminder settings:', JSON.stringify(appointmentData.reminder_settings, null, 2));
     
     // Create the appointment
     const newAppointment = await Appointment.create({
@@ -190,27 +204,25 @@ const createAppointment = async (appointmentData, userId) => {
       throw new Error('User not found');
     }
     
-    // Tạo email reminder
-    if (appointmentData.set_reminder) {
-      console.log('Creating email reminder for the appointment...');
-      try {
-        const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
-        if (emailQueue) {
-          console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
-        } else {
-          console.log('No email reminder was created (reminder time may have passed or notifications disabled)');
-        }
-      } catch (reminderError) {
-        console.error('Error creating email reminder:', reminderError);
-        // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+    // Always create email reminder
+    console.log('Creating email reminder for the appointment...');
+    try {
+      const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
+      if (emailQueue) {
+        console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
+      } else {
+        console.log('No email reminder was created - investigate why');
       }
-    } else {
-      console.log('No reminder requested, skipping email queue creation');
+    } catch (reminderError) {
+      console.error('Error creating email reminder:', reminderError);
+      console.error('Error stack:', reminderError.stack);
+      // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
     }
     
     return newAppointment;
   } catch (error) {
     console.error('Error creating appointment:', error);
+    console.error('Error stack:', error.stack);
     throw new Error(`Error creating appointment: ${error.message}`);
   }
 };
