@@ -2,47 +2,39 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../index');
 const { v4: uuidv4 } = require('uuid');
 
-const User = sequelize.define('user', {
+const EmailTemplate = sequelize.define('email_template', {
   id: {
     type: DataTypes.UUID,
     defaultValue: () => uuidv4(),
     primaryKey: true,
     allowNull: false
   },
-  username: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
-  },
-  email: {
+  name: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-    validate: {
-      isEmail: true
-    }
+    comment: 'Tên template, ví dụ: appointment_reminder, todo_reminder'
   },
-  password: {
+  subject: {
     type: DataTypes.STRING,
-    allowNull: false
-  },
-  role: {
-    type: DataTypes.STRING,
-    defaultValue: 'user',
     allowNull: false,
-    validate: {
-      isIn: [['user', 'admin']]
-    }
+    comment: 'Tiêu đề email mẫu'
+  },
+  content: {
+    type: DataTypes.TEXT('long'),
+    allowNull: false,
+    comment: 'Nội dung HTML template với các merge tags'
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Mô tả về template'
   },
   is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-    allowNull: false
-  },
-  timezone: {
-    type: DataTypes.STRING,
-    defaultValue: 'UTC',
-    allowNull: false
+    allowNull: false,
+    comment: 'Trạng thái hoạt động của template'
   },
   created_at: {
     type: DataTypes.DATE,
@@ -57,20 +49,15 @@ const User = sequelize.define('user', {
   deleted_at: {
     type: DataTypes.DATE,
     allowNull: true
-  },
-  deleted: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    allowNull: false
   }
 }, {
   timestamps: true,
   paranoid: true,
   underscored: true,
-  tableName: 'user',
+  tableName: 'email_template',
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   deletedAt: 'deleted_at'
 });
 
-module.exports = User; 
+module.exports = EmailTemplate; 

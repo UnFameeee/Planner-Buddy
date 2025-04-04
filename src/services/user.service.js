@@ -4,9 +4,7 @@ const { hashPassword, comparePassword, generateToken } = require('../utils/auth.
 // Get user by ID
 const getUserById = async (userId) => {
   try {
-    const user = await User.findByPk(userId, {
-      attributes: { exclude: ['password'] }
-    });
+    const user = await User.findByPk(userId);
     return user;
   } catch (error) {
     throw new Error(`Error fetching user: ${error.message}`);

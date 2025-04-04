@@ -19,6 +19,7 @@ async function initDatabase() {
       username: 'admin',
       email: 'admin@example.com',
       password: bcrypt.hashSync('admin123', 10),
+      role: 'admin',
       is_active: true,
       timezone: 'UTC'
     });

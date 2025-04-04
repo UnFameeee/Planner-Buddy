@@ -2,6 +2,7 @@ const { Todo, User } = require('../database/models');
 const { Op, fn, col } = require('sequelize');
 const { sendTodoReminder } = require('../utils/email.util');
 const { sequelize } = require('../database');
+const emailQueueService = require('./email_queue.service');
 
 // Get all todos for a user
 const getUserTodos = async (userId, options = {}) => {
@@ -209,10 +210,16 @@ const processTodoReminders = async () => {
     for (const todo of dueTodos) {
       if (todo.user) {
         // Send reminder
-        await sendTodoReminder(todo.user, todo);
-        
-        // Mark reminder as sent
-        await todo.update({ reminder_sent: true });
+        try {
+          // Thêm reminder vào email queue
+          await emailQueueService.createTodoReminder(todo, todo.user);
+          
+          // Mark reminder as sent
+          await todo.update({ reminder_sent: true });
+          console.log(`Todo reminder queued successfully for todo ID: ${todo.id}`);
+        } catch (error) {
+          console.error(`Error creating todo reminder for todo ID: ${todo.id}:`, error);
+        }
       }
     }
     

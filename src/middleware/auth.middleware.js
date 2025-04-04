@@ -127,7 +127,7 @@ const authenticate = async (req, res, next) => {
           username: user.username,
           email: user.email,
           timezone: user.timezone,
-          is_admin: user.is_admin
+          role: user.role || 'user'
         },
         JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
@@ -195,7 +195,7 @@ const authenticate = async (req, res, next) => {
 // Middleware to check if user is admin
 const isAdmin = async (req, res, next) => {
   try {
-    if (!req.user?.is_admin) {
+    if (!req.user || req.user.role !== 'admin') {
       if (req.accepts('html')) {
         return res.render('error', {
           title: 'Access Denied | Planner Buddy',

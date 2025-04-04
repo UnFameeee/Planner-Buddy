@@ -10,6 +10,9 @@ const { User } = require('./database/models');
 const { authenticate } = require('./middleware/auth.middleware');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = process.env;
+const emailProcessorService = require('./services/email_processor.service');
+const appointmentService = require('./services/appointment.service');
+const emailTemplateService = require('./services/email_template.service');
 
 // Basic middleware
 app.use(express.json());
@@ -39,12 +42,16 @@ const appointmentRoutes = require('./routes/appointment.routes');
 const settingRoutes = require('./routes/setting.routes');
 const authRoutes = require('./routes/auth.routes');
 const apiRoutes = require('./routes/api');
+const emailTemplateRoutes = require('./routes/email_template.routes');
 
 // Public routes (no auth required)
 app.use('/auth', authRoutes);
 
 // API routes (with /api prefix)
 app.use('/api', apiRoutes);
+
+// API routes for email templates (directly on /api/)
+app.use('/api/email-templates', authenticate, emailTemplateRoutes);
 
 // Legacy API compatibility - ensure old API calls still work while transitioning to new structure
 // This forwards non-HTML requests to the new API endpoints
@@ -116,6 +123,14 @@ app.use('/settings', authenticate, settingRoutes);
 const dashboardRoutes = require('./routes/dashboard.routes');
 app.use('/dashboard', authenticate, dashboardRoutes);
 
+// Profile routes
+const profileRoutes = require('./routes/profile.routes');
+app.use('/profile', authenticate, profileRoutes);
+
+// Email Templates UI routes
+const emailTemplateViewRoutes = require('./routes/email_template_view.routes');
+app.use('/email-templates', authenticate, emailTemplateViewRoutes);
+
 // 404 handler - must be before error handler
 app.use(async (req, res, next) => {
   try {
@@ -163,4 +178,30 @@ app.use(async (err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+
+  // Khởi tạo email processor
+  if (process.env.NODE_ENV !== 'test') {
+    // Chuyển email từ queue sang progress mỗi phút
+    const QUEUE_PROCESS_INTERVAL = parseInt(process.env.QUEUE_PROCESS_INTERVAL || '60000', 10);
+    
+    // Xử lý và gửi email mỗi 15 giây
+    const EMAIL_PROCESS_INTERVAL = parseInt(process.env.EMAIL_PROCESS_INTERVAL || '15000', 10);
+    
+    // Khởi tạo email processor
+    emailProcessorService.initializeEmailProcessor(
+      QUEUE_PROCESS_INTERVAL, 
+      EMAIL_PROCESS_INTERVAL
+    );
+    
+    console.log('Email reminder processor initialized');
+    
+    // Đảm bảo các template email mặc định đã được tạo
+    emailTemplateService.ensureDefaultTemplates()
+      .then(() => {
+        console.log('Default email templates initialized');
+      })
+      .catch(error => {
+        console.error('Error initializing default email templates:', error);
+      });
+  }
 }); 

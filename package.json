@@ -6,7 +6,14 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "init-db": "node src/database/migrations/init-db.js"
+    "init-db": "node src/database/migrations/init-db.js",
+    "migration:add-role": "node src/database/migrations/add-role-to-users.js",
+    "migration:add-email-tables": "node src/database/migrations/add-email-tables.js",
+    "migration:add-deleted-at": "node src/database/migrations/add-deleted-at-columns.js",
+    "migration:add-appointment-type": "node src/database/migrations/add-appointment-type.js",
+    "migration:fix-appointment-type": "node src/database/migrations/fix-appointment-type.js",
+    "migration:add-email-template": "node src/database/migrations/add-email-template.js",
+    "migration:add-todo-to-email-queue": "node src/database/migrations/add-todo-to-email-queue.js"
   },
   "dependencies": {
     "axios": "^0.27.2",
@@ -19,6 +26,7 @@
     "express": "^4.18.1",
     "express-session": "^1.17.3",
     "jsonwebtoken": "^8.5.1",
+    "luxon": "^3.6.0",
     "mysql2": "^2.3.3",
     "nodemailer": "^6.7.8",
     "sequelize": "^6.25.3",

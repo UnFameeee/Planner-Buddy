@@ -37,6 +37,12 @@ const Appointment = sequelize.define('appointment', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  appointment_type: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'other',
+    comment: 'Loại cuộc hẹn (meeting, personal, medical, other)'
+  },
   reminder_time: {
     type: DataTypes.DATE,
     allowNull: true
@@ -45,6 +51,23 @@ const Appointment = sequelize.define('appointment', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     allowNull: false
+  },
+  reminder_settings: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {
+      enabled: true,
+      minutes_before: 30,
+      email_notification: true,
+      reminder_type: 'once' // 'once', 'repeat'
+    },
+    comment: 'Cài đặt cho thông báo nhắc nhở'
+  },
+  email_reminders: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Danh sách các lần gửi email reminder'
   },
   tags: {
     type: DataTypes.STRING,
