@@ -37,6 +37,12 @@ const Appointment = sequelize.define('appointment', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  appointment_type: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'other',
+    comment: 'Loại cuộc hẹn (meeting, personal, medical, other)'
+  },
   reminder_time: {
     type: DataTypes.DATE,
     allowNull: true

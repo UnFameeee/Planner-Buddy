@@ -214,11 +214,15 @@ const createAppointmentReminder = async (appointment, user) => {
     const emailSubject = `Reminder: ${appointment.title}`;
     const emailContent = `
       <h2>Appointment Reminder</h2>
+      <p>Hello ${user.username},</p>
       <p>This is a reminder for your upcoming appointment:</p>
       <p><strong>Title:</strong> ${appointment.title}</p>
       <p><strong>Time:</strong> ${new Date(appointment.start_time).toLocaleString()}</p>
+      <p><strong>End Time:</strong> ${appointment.end_time ? new Date(appointment.end_time).toLocaleString() : 'Not specified'}</p>
       <p><strong>Location:</strong> ${appointment.location || 'Not specified'}</p>
       <p><strong>Description:</strong> ${appointment.description || 'Not provided'}</p>
+      <hr>
+      <p>Log in to Planner Buddy to view more details or manage your appointments.</p>
     `;
 
     // Thêm vào queue

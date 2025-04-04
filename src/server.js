@@ -188,18 +188,5 @@ app.listen(PORT, () => {
     );
     
     console.log('Email reminder processor initialized');
-    
-    // Khởi tạo appointment reminder processor
-    setInterval(async () => {
-      try {
-        console.log('Running appointment reminder processor...');
-        const processedCount = await appointmentService.processAppointmentReminders();
-        console.log(`Processed ${processedCount} appointment reminders`);
-      } catch (error) {
-        console.error('Error processing appointment reminders:', error);
-      }
-    }, APPOINTMENT_REMINDER_INTERVAL);
-    
-    console.log(`Appointment reminder processor initialized with interval: ${APPOINTMENT_REMINDER_INTERVAL}ms`);
   }
 }); 

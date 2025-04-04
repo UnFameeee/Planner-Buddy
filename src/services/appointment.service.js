@@ -162,6 +162,7 @@ const createAppointment = async (appointmentData, userId) => {
   try {
     console.log(`Creating appointment for user: ${userId}`);
     console.log('Appointment data:', JSON.stringify(appointmentData, null, 2));
+    console.log('Appointment type from request:', appointmentData.appointment_type);
     
     // Convert start_time and end_time to Date objects if they are strings
     if (typeof appointmentData.start_time === 'string') {
@@ -204,19 +205,23 @@ const createAppointment = async (appointmentData, userId) => {
       throw new Error('User not found');
     }
     
-    // Always create email reminder
-    console.log('Creating email reminder for the appointment...');
-    try {
-      const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
-      if (emailQueue) {
-        console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
-      } else {
-        console.log('No email reminder was created - investigate why');
+    // Chỉ tạo email reminder nếu reminder được bật
+    if (appointmentData.reminder_settings.enabled && appointmentData.reminder_settings.email_notification) {
+      console.log('Creating email reminder for the appointment...');
+      try {
+        const emailQueue = await emailQueueService.createAppointmentReminder(newAppointment, user);
+        if (emailQueue) {
+          console.log(`Email reminder created successfully with queue ID: ${emailQueue.id}`);
+        } else {
+          console.log('No email reminder was created (reminder settings disabled)');
+        }
+      } catch (reminderError) {
+        console.error('Error creating email reminder:', reminderError);
+        console.error('Error stack:', reminderError.stack);
+        // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
       }
-    } catch (reminderError) {
-      console.error('Error creating email reminder:', reminderError);
-      console.error('Error stack:', reminderError.stack);
-      // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+    } else {
+      console.log('Email notification is disabled for this appointment, skipping reminder creation');
     }
     
     return newAppointment;
@@ -232,6 +237,7 @@ const updateAppointment = async (appointmentId, appointmentData, userId) => {
   try {
     console.log(`Updating appointment ID: ${appointmentId} for user: ${userId}`);
     console.log('Appointment update data:', JSON.stringify(appointmentData, null, 2));
+    console.log('Appointment type from update request:', appointmentData.appointment_type);
     
     const appointment = await Appointment.findOne({
       where: {
@@ -243,6 +249,18 @@ const updateAppointment = async (appointmentId, appointmentData, userId) => {
     if (!appointment) {
       console.error(`Appointment not found with ID: ${appointmentId} for user: ${userId}`);
       throw new Error('Appointment not found or access denied');
+    }
+    
+    // Kiểm tra xem email đã được transfer sang progress chưa
+    const emailsTransferred = await EmailQueue.findOne({
+      where: {
+        appointment_id: appointmentId,
+        status: 'transferred'
+      }
+    });
+    
+    if (emailsTransferred) {
+      throw new Error('Appointment reminder has already been processed and cannot be modified. Please create a new appointment instead.');
     }
     
     // Lưu thời gian cũ để kiểm tra xem có thay đổi không
@@ -270,61 +288,59 @@ const updateAppointment = async (appointmentId, appointmentData, userId) => {
     const reminderSettingsChanged = JSON.stringify(oldReminderSettings) !== JSON.stringify(appointment.reminder_settings);
     const reminderStatusChanged = oldReminderSettings?.enabled !== appointment.reminder_settings?.enabled;
     
-    if (timeChanged || reminderSettingsChanged || reminderStatusChanged) {
-      console.log('Start time or reminder settings changed, updating email reminder...');
+    console.log(`Time changed: ${timeChanged}`);
+    console.log(`Reminder settings changed: ${reminderSettingsChanged}`);
+    console.log(`Reminder status changed: ${reminderStatusChanged}`);
+    
+    // Nếu thời gian, cài đặt reminder thay đổi và reminder được bật -> tạo reminder mới
+    if ((timeChanged || reminderSettingsChanged) && appointment.reminder_settings?.enabled) {
+      console.log('Time or reminder settings changed and reminder is enabled, updating email reminder...');
       
-      // Cancel any existing reminders
-      try {
-        const pendingEmails = await EmailQueue.findAll({
-          where: {
-            appointment_id: appointmentId,
-            status: 'pending'
-          }
-        });
-        
-        console.log(`Found ${pendingEmails.length} pending email reminders to cancel`);
-        
-        // Cancel all pending emails
-        for (const email of pendingEmails) {
-          await email.update({ status: 'canceled' });
-          console.log(`Canceled email reminder with ID: ${email.id}`);
+      // Hủy các reminder cũ trước khi tạo mới
+      const pendingEmails = await EmailQueue.findAll({
+        where: {
+          appointment_id: appointmentId,
+          status: 'pending'
         }
-      } catch (emailError) {
-        console.error('Error canceling existing email reminders:', emailError);
+      });
+      
+      console.log(`Found ${pendingEmails.length} pending email reminders to cancel`);
+      
+      for (const email of pendingEmails) {
+        await email.update({ status: 'canceled' });
+        console.log(`Canceled email queue with ID: ${email.id}`);
       }
       
-      // Create new reminder if enabled
-      if (appointment.reminder_settings?.enabled) {
-        // Lấy thông tin user
-        const user = await User.findByPk(userId);
-        if (!user) {
-          console.error(`User not found with ID: ${userId}`);
-          throw new Error('User not found');
-        }
-        
-        // Tạo email reminder mới
+      // Chỉ tạo reminder mới nếu reminder được bật
+      if (appointment.reminder_settings.enabled && appointment.reminder_settings.email_notification) {
         try {
+          // Lấy thông tin user
+          const user = await User.findByPk(userId);
+          if (!user) {
+            throw new Error('User not found');
+          }
+          
+          // Tạo reminder mới
           const emailQueue = await emailQueueService.createAppointmentReminder(appointment, user);
           if (emailQueue) {
-            console.log(`New email reminder created successfully with queue ID: ${emailQueue.id}`);
+            console.log(`New email reminder created with queue ID: ${emailQueue.id}`);
           } else {
-            console.log('No new email reminder was created (reminder time may have passed or notifications disabled)');
+            console.log('No new reminder was created');
           }
-        } catch (reminderError) {
-          console.error('Error creating updated email reminder:', reminderError);
-          // Tiếp tục luồng xử lý ngay cả khi không thể tạo reminder
+        } catch (error) {
+          console.error('Error creating new reminder:', error);
         }
       } else {
-        console.log('Reminders are now disabled, no new reminder created');
+        console.log('Email notification is disabled, not creating a new reminder');
       }
     } else {
-      console.log('No changes to start time or reminder settings, not updating email reminder');
+      console.log('No changes that require updating the reminder');
     }
     
     return appointment;
   } catch (error) {
     console.error('Error updating appointment:', error);
-    throw new Error(`Error updating appointment: ${error.message}`);
+    throw error;
   }
 };
 
@@ -342,7 +358,7 @@ const deleteAppointment = async (appointmentId, userId) => {
       throw new Error('Appointment not found or access denied');
     }
     
-    // Find any pending email reminders for this appointment and cancel them
+    // Chỉ hủy các email đang ở trạng thái pending trong queue
     try {
       const pendingEmails = await EmailQueue.findAll({
         where: {
@@ -353,7 +369,7 @@ const deleteAppointment = async (appointmentId, userId) => {
       
       console.log(`Found ${pendingEmails.length} pending email reminders for appointment ${appointmentId}`);
       
-      // Cancel all pending emails
+      // Hủy các email đang pending
       for (const email of pendingEmails) {
         await email.update({ status: 'canceled' });
         console.log(`Canceled email reminder with ID: ${email.id}`);
@@ -362,6 +378,9 @@ const deleteAppointment = async (appointmentId, userId) => {
       console.error('Error canceling email reminders:', emailError);
       // Continue with appointment deletion even if canceling emails fails
     }
+    
+    // Các email đã chuyển sang progress vẫn để nguyên, người dùng vẫn nhận được email reminder
+    console.log(`Deleting appointment ${appointmentId} (any transferred emails will still be processed)`);
     
     // Delete appointment
     await appointment.destroy();
@@ -394,72 +413,10 @@ const getUpcomingAppointments = async (userId, limit = 5) => {
   }
 };
 
-// Process reminders for appointments
+// Process reminders for appointments - DEPRECATED (reminders are now created directly when appointment is created/updated)
 const processAppointmentReminders = async () => {
-  try {
-    const now = new Date();
-    console.log(`Processing appointment reminders at: ${now.toISOString()}`);
-    
-    // Find appointments with reminders due and not sent yet
-    const dueAppointments = await Appointment.findAll({
-      where: {
-        reminder_time: { [Op.lte]: now },
-        reminder_sent: false,
-        deleted: false
-      },
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['id', 'email', 'username', 'timezone']
-      }]
-    });
-
-    console.log(`Found ${dueAppointments.length} appointments with reminders due`);
-    
-    // Process each appointment
-    for (const appointment of dueAppointments) {
-      try {
-        console.log(`Processing reminder for appointment: ${appointment.id} - ${appointment.title}`);
-        
-        // Kiểm tra xem có cần gửi email không
-        const reminderSettings = appointment.reminder_settings || {
-          enabled: true,
-          email_notification: true
-        };
-        
-        if (reminderSettings.enabled && reminderSettings.email_notification) {
-          console.log('Email notification is enabled, creating reminder...');
-          // Chỉ tạo reminder nếu chưa có trong email_queue
-          const user = appointment.user;
-          if (!user) {
-            console.log(`User not found for appointment ${appointment.id}, skipping reminder`);
-            continue;
-          }
-          
-          const emailQueue = await emailQueueService.createAppointmentReminder(appointment, user);
-          if (emailQueue) {
-            console.log(`Reminder created and added to queue with ID: ${emailQueue.id}`);
-          } else {
-            console.log('No reminder created (possibly already passed the reminder time)');
-          }
-        } else {
-          console.log('Email notification is disabled for this appointment, skipping reminder creation');
-        }
-        
-        // Đánh dấu là đã gửi
-        await appointment.update({ reminder_sent: true });
-        
-        console.log(`Reminder processed for appointment: ${appointment.id} - ${appointment.title}`);
-      } catch (error) {
-        console.error(`Error processing reminder for appointment ${appointment.id}:`, error);
-      }
-    }
-    
-    return dueAppointments.length;
-  } catch (error) {
-    console.error('Error processing appointment reminders:', error);
-    throw new Error(`Error processing appointment reminders: ${error.message}`);
-  }
+  console.log('This function is deprecated. Reminders are now created directly when appointments are created or updated.');
+  return 0;
 };
 
 module.exports = {

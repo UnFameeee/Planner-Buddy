@@ -230,6 +230,9 @@
         set_reminder: setReminder
       };
       
+      console.log('Form data being sent:', formData);
+      console.log('Appointment type selected:', appointmentType);
+      
       if (setReminder) {
         const reminderMinutes = parseInt(document.getElementById('reminderTime').value);
         const reminderMethod = document.getElementById('reminderMethod').value;

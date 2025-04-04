@@ -52,7 +52,8 @@ const sendMail = async (options) => {
 
     // Set from address if not provided
     if (!options.from) {
-      options.from = process.env.SMTP_USER || 'planner-buddy@example.com';
+      const fromEmail = process.env.SMTP_USER || 'planner-buddy@example.com';
+      options.from = `"Planner Buddy" <${fromEmail}>`;
     }
 
     // Send email
@@ -68,9 +69,14 @@ const sendMail = async (options) => {
 // Send todo reminder email
 const sendTodoReminder = async (user, todo) => {
   try {
+    // Get email address with display name
+    const fromEmail = process.env.SMTP_USER || 'planner-buddy@example.com';
+    const fromAddress = `"Planner Buddy" <${fromEmail}>`;
+    
     // Email content
     const mailOptions = {
       to: user.email,
+      from: fromAddress,
       subject: `Reminder: ${todo.title}`,
       html: `
         <h2>Todo Reminder</h2>
@@ -95,9 +101,14 @@ const sendTodoReminder = async (user, todo) => {
 // Send appointment reminder email
 const sendAppointmentReminder = async (user, appointment) => {
   try {
+    // Get email address with display name
+    const fromEmail = process.env.SMTP_USER || 'planner-buddy@example.com';
+    const fromAddress = `"Planner Buddy" <${fromEmail}>`;
+    
     // Email content
     const mailOptions = {
       to: user.email,
+      from: fromAddress,
       subject: `Reminder: ${appointment.title}`,
       html: `
         <h2>Appointment Reminder</h2>

@@ -126,9 +126,14 @@ const sendEmail = async (emailProgress) => {
       return false;
     }
 
+    // Lấy địa chỉ email kèm tên hiển thị
+    const fromEmail = process.env.SMTP_USER || 'planner-buddy@example.com';
+    const fromAddress = `"Planner Buddy" <${fromEmail}>`;
+
     // Gửi email
     await emailUtil.sendMail({
       to: emailProgress.recipient_email,
+      from: fromAddress,
       subject: emailProgress.email_subject,
       html: emailProgress.email_content
     });
