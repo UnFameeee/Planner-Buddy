@@ -395,12 +395,14 @@ const deleteAppointment = async (appointmentId, userId) => {
 const getUpcomingAppointments = async (userId, limit = 5) => {
   try {
     const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
     
     const appointments = await Appointment.findAll({
       where: {
         user_id: userId,
         start_time: {
-          [Op.gte]: now
+          [Op.gte]: startOfToday
         }
       },
       order: [['start_time', 'ASC']],
