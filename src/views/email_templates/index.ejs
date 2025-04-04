@@ -1,0 +1,401 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2>Email Templates</h2>
+        <button class="btn btn-primary" id="createTemplateBtn">
+          <i class="fas fa-plus"></i> Create New Template
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="templatesTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Subject</th>
+                  <th>Active</th>
+                  <th>Last Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Templates will be populated here via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Template Modal -->
+<div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="templateModalLabel">Email Template</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="templateForm">
+          <input type="hidden" id="templateId">
+          
+          <div class="mb-3">
+            <label for="templateName" class="form-label">Template Name</label>
+            <input type="text" class="form-control" id="templateName" required>
+            <div class="form-text">A unique name to identify this template (e.g. appointment_reminder)</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="templateSubject" class="form-label">Email Subject</label>
+            <input type="text" class="form-control" id="templateSubject" required>
+            <div class="form-text">The subject line of the email. You can use merge tags like {{appointment_title}}</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="templateHtml" class="form-label">HTML Content</label>
+            <textarea class="form-control" id="templateHtml" rows="10" required></textarea>
+            <div class="form-text">
+              HTML content of the email. You can use merge tags like:
+              <ul>
+                <li>{{recipient_name}} - The recipient's name</li>
+                <li>{{appointment_title}} - The appointment title</li>
+                <li>{{appointment_time}} - The appointment date and time</li>
+                <li>{{appointment_description}} - The appointment description</li>
+                <li>{{appointment_location}} - The appointment location</li>
+                <li>{{todo_title}} - The todo title</li>
+                <li>{{todo_due_date}} - The todo due date</li>
+                <li>{{todo_description}} - The todo description</li>
+                <li>{{todo_priority}} - The todo priority</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="templateActive" checked>
+            <label class="form-check-label" for="templateActive">
+              Active
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveTemplateBtn">Save Template</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this template? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Template</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let templates = [];
+    let currentTemplateId = null;
+    
+    // Load all templates
+    loadTemplates();
+    
+    // Create new template button
+    document.getElementById('createTemplateBtn').addEventListener('click', function() {
+      // Reset form
+      document.getElementById('templateForm').reset();
+      document.getElementById('templateId').value = '';
+      document.getElementById('templateModalLabel').textContent = 'Create New Template';
+      
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+      modal.show();
+    });
+    
+    // Save template button
+    document.getElementById('saveTemplateBtn').addEventListener('click', function() {
+      // Get form data
+      const id = document.getElementById('templateId').value;
+      const name = document.getElementById('templateName').value;
+      const subject = document.getElementById('templateSubject').value;
+      const content = document.getElementById('templateHtml').value;
+      const is_active = document.getElementById('templateActive').checked;
+      
+      if (!name || !subject || !content) {
+        alert('Please fill all required fields');
+        return;
+      }
+      
+      const templateData = {
+        name,
+        subject,
+        content,
+        is_active
+      };
+      
+      // Create or update
+      if (id) {
+        updateTemplate(id, templateData);
+      } else {
+        createTemplate(templateData);
+      }
+    });
+    
+    // Confirm delete button
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+      if (currentTemplateId) {
+        deleteTemplate(currentTemplateId);
+      }
+    });
+    
+    // Load all templates
+    function loadTemplates() {
+      fetch('/api/email-templates')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to load templates');
+          }
+          return response.json();
+        })
+        .then(data => {
+          templates = data;
+          renderTemplates();
+        })
+        .catch(error => {
+          console.error('Error loading templates:', error);
+          showToast('error', 'Failed to load templates: ' + error.message);
+        });
+    }
+    
+    // Render templates table
+    function renderTemplates() {
+      const tbody = document.querySelector('#templatesTable tbody');
+      tbody.innerHTML = '';
+      
+      if (templates.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="6" class="text-center">No templates found</td>';
+        tbody.appendChild(tr);
+        return;
+      }
+      
+      templates.forEach(template => {
+        const tr = document.createElement('tr');
+        
+        tr.innerHTML = `
+          <td>${template.id}</td>
+          <td>${template.name}</td>
+          <td>${template.subject}</td>
+          <td>${template.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+          <td>${new Date(template.updated_at).toLocaleString()}</td>
+          <td>
+            <button class="btn btn-sm btn-primary edit-btn" data-id="${template.id}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-danger delete-btn" data-id="${template.id}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      // Add event listeners to edit and delete buttons
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = this.getAttribute('data-id');
+          editTemplate(id);
+        });
+      });
+      
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = this.getAttribute('data-id');
+          confirmDelete(id);
+        });
+      });
+    }
+    
+    // Edit template
+    function editTemplate(id) {
+      const template = templates.find(t => t.id == id);
+      if (!template) return;
+      
+      document.getElementById('templateId').value = template.id;
+      document.getElementById('templateName').value = template.name;
+      document.getElementById('templateSubject').value = template.subject;
+      document.getElementById('templateHtml').value = template.content;
+      document.getElementById('templateActive').checked = template.is_active;
+      
+      document.getElementById('templateModalLabel').textContent = 'Edit Template';
+      
+      const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+      modal.show();
+    }
+    
+    // Confirm delete
+    function confirmDelete(id) {
+      currentTemplateId = id;
+      const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+      modal.show();
+    }
+    
+    // Create template
+    function createTemplate(templateData) {
+      fetch('/api/email-templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(templateData)
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to create template');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Hide modal
+          bootstrap.Modal.getInstance(document.getElementById('templateModal')).hide();
+          
+          // Show success toast
+          showToast('success', 'Template created successfully');
+          
+          // Reload templates
+          loadTemplates();
+        })
+        .catch(error => {
+          console.error('Error creating template:', error);
+          showToast('error', 'Failed to create template: ' + error.message);
+        });
+    }
+    
+    // Update template
+    function updateTemplate(id, templateData) {
+      fetch(`/api/email-templates/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(templateData)
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to update template');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Hide modal
+          bootstrap.Modal.getInstance(document.getElementById('templateModal')).hide();
+          
+          // Show success toast
+          showToast('success', 'Template updated successfully');
+          
+          // Reload templates
+          loadTemplates();
+        })
+        .catch(error => {
+          console.error('Error updating template:', error);
+          showToast('error', 'Failed to update template: ' + error.message);
+        });
+    }
+    
+    // Delete template
+    function deleteTemplate(id) {
+      fetch(`/api/email-templates/${id}`, {
+        method: 'DELETE'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to delete template');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Hide modal
+          bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+          
+          // Show success toast
+          showToast('success', 'Template deleted successfully');
+          
+          // Reload templates
+          loadTemplates();
+        })
+        .catch(error => {
+          console.error('Error deleting template:', error);
+          showToast('error', 'Failed to delete template: ' + error.message);
+        });
+    }
+    
+    // Show toast notification
+    function showToast(type, message) {
+      // Check if we have a toast container
+      let toastContainer = document.querySelector('.toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+      }
+      
+      // Create toast
+      const toastId = 'toast-' + Date.now();
+      const toast = document.createElement('div');
+      toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}`;
+      toast.id = toastId;
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.setAttribute('aria-atomic', 'true');
+      
+      toast.innerHTML = `
+        <div class="toast-header">
+          <strong class="me-auto">${type === 'error' ? 'Error' : 'Success'}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+          ${message}
+        </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // Show toast
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      
+      // Remove toast after it's hidden
+      toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
+      });
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %> 

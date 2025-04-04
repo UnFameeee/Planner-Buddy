@@ -1,0 +1,220 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2>Settings</h2>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4">
+      <div class="list-group mb-4" id="settingTabs" role="tablist">
+        <a class="list-group-item list-group-item-action active" id="general-tab" data-bs-toggle="list" href="#general" role="tab" aria-controls="general">
+          <i class="fas fa-cog me-2"></i> General
+        </a>
+        <a class="list-group-item list-group-item-action" id="appearance-tab" data-bs-toggle="list" href="#appearance" role="tab" aria-controls="appearance">
+          <i class="fas fa-palette me-2"></i> Appearance
+        </a>
+        <a class="list-group-item list-group-item-action" id="email-tab" data-bs-toggle="list" href="#email" role="tab" aria-controls="email">
+          <i class="fas fa-envelope me-2"></i> Email Templates
+        </a>
+      </div>
+    </div>
+    
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="tab-content">
+            <!-- General Settings -->
+            <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+              <h4 class="mb-3">General Settings</h4>
+              
+              <form id="generalSettingsForm">
+                <div class="mb-3">
+                  <label for="appName" class="form-label">Application Name</label>
+                  <input type="text" class="form-control" id="appName" value="<%= settings.app_name?.value || 'Planner Buddy' %>">
+                </div>
+                
+                <div class="mb-3">
+                  <label for="dateFormat" class="form-label">Date Format</label>
+                  <select class="form-select" id="dateFormat">
+                    <% 
+                      const dateFormat = settings.date_format?.value || 'MM/DD/YYYY';
+                      const dateFormats = [
+                        { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+                        { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+                        { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
+                      ];
+                    %>
+                    <% dateFormats.forEach(format => { %>
+                      <option value="<%= format.value %>" <%= dateFormat === format.value ? 'selected' : '' %>><%= format.label %></option>
+                    <% }) %>
+                  </select>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="timeFormat" class="form-label">Time Format</label>
+                  <select class="form-select" id="timeFormat">
+                    <% 
+                      const timeFormat = settings.time_format?.value || '12h';
+                      const timeFormats = [
+                        { value: '12h', label: '12-hour (AM/PM)' },
+                        { value: '24h', label: '24-hour' }
+                      ];
+                    %>
+                    <% timeFormats.forEach(format => { %>
+                      <option value="<%= format.value %>" <%= timeFormat === format.value ? 'selected' : '' %>><%= format.label %></option>
+                    <% }) %>
+                  </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save General Settings</button>
+              </form>
+            </div>
+            
+            <!-- Appearance Settings -->
+            <div class="tab-pane fade" id="appearance" role="tabpanel" aria-labelledby="appearance-tab">
+              <h4 class="mb-3">Appearance Settings</h4>
+              
+              <form id="appearanceSettingsForm">
+                <div class="mb-4">
+                  <label for="themeColor" class="form-label">Theme Color</label>
+                  <input type="color" class="form-control form-control-color" id="themeColor" value="<%= settings.theme_color?.value || '#72d1a8' %>" title="Choose your theme color">
+                  <div class="form-text">This color will be used for buttons, links, and other UI elements.</div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Appearance Settings</button>
+              </form>
+            </div>
+            
+            <!-- Email Template Settings -->
+            <div class="tab-pane fade" id="email" role="tabpanel" aria-labelledby="email-tab">
+              <h4 class="mb-3">Email Templates</h4>
+              <p>Configure email templates for notifications and reminders.</p>
+              
+              <a href="/email-templates" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Manage Email Templates
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // General Settings Form
+    const generalForm = document.getElementById('generalSettingsForm');
+    if (generalForm) {
+      generalForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+          const settings = {
+            app_name: document.getElementById('appName').value,
+            date_format: document.getElementById('dateFormat').value,
+            time_format: document.getElementById('timeFormat').value
+          };
+          
+          // Update each setting
+          for (const [key, value] of Object.entries(settings)) {
+            await updateSetting(key, value);
+          }
+          
+          showToast('success', 'General settings saved successfully.');
+        } catch (error) {
+          console.error('Error saving general settings:', error);
+          showToast('error', 'Failed to save general settings.');
+        }
+      });
+    }
+    
+    // Appearance Settings Form
+    const appearanceForm = document.getElementById('appearanceSettingsForm');
+    if (appearanceForm) {
+      appearanceForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+          const themeColor = document.getElementById('themeColor').value;
+          await updateSetting('theme_color', themeColor);
+          
+          showToast('success', 'Appearance settings saved successfully.');
+          
+          // Apply new theme color without reload
+          document.querySelectorAll('[data-theme-color]').forEach(el => {
+            el.style.backgroundColor = themeColor;
+          });
+        } catch (error) {
+          console.error('Error saving appearance settings:', error);
+          showToast('error', 'Failed to save appearance settings.');
+        }
+      });
+    }
+    
+    // Helper function to update a setting
+    async function updateSetting(key, value) {
+      const response = await fetch(`/api/settings/${key}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ value })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update setting: ${key}`);
+      }
+      
+      return response.json();
+    }
+    
+    // Show toast notification
+    function showToast(type, message) {
+      // Check if we have a toast container
+      let toastContainer = document.querySelector('.toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+      }
+      
+      // Create toast
+      const toastId = 'toast-' + Date.now();
+      const toast = document.createElement('div');
+      toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}`;
+      toast.id = toastId;
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.setAttribute('aria-atomic', 'true');
+      
+      toast.innerHTML = `
+        <div class="toast-header">
+          <strong class="me-auto">${type === 'error' ? 'Error' : 'Success'}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+          ${message}
+        </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // Show toast
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      
+      // Remove toast after it's hidden
+      toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
+      });
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %> 

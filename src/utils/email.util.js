@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const axios = require('axios');
+const emailTemplateService = require('../services/email_template.service');
 
 // Create mail transporter
 const createTransporter = async () => {
@@ -73,21 +74,15 @@ const sendTodoReminder = async (user, todo) => {
     const fromEmail = process.env.SMTP_USER || 'planner-buddy@example.com';
     const fromAddress = `"Planner Buddy" <${fromEmail}>`;
     
+    // Lấy template email từ service
+    const emailTemplate = await emailTemplateService.renderTodoReminderTemplate(todo, user);
+    
     // Email content
     const mailOptions = {
       to: user.email,
       from: fromAddress,
-      subject: `Reminder: ${todo.title}`,
-      html: `
-        <h2>Todo Reminder</h2>
-        <p>Hello ${user.username},</p>
-        <p>This is a reminder for your todo: <strong>${todo.title}</strong></p>
-        <p><strong>Due Date:</strong> ${new Date(todo.due_date).toLocaleString()}</p>
-        <p><strong>Description:</strong> ${todo.description || 'No description'}</p>
-        <p><strong>Priority:</strong> ${todo.priority}</p>
-        <hr>
-        <p>Log in to Planner Buddy to view more details or mark this todo as completed.</p>
-      `
+      subject: emailTemplate.subject,
+      html: emailTemplate.html
     };
 
     // Send email
@@ -105,22 +100,15 @@ const sendAppointmentReminder = async (user, appointment) => {
     const fromEmail = process.env.SMTP_USER || 'planner-buddy@example.com';
     const fromAddress = `"Planner Buddy" <${fromEmail}>`;
     
+    // Lấy template email từ service
+    const emailTemplate = await emailTemplateService.renderAppointmentReminderTemplate(appointment, user);
+    
     // Email content
     const mailOptions = {
       to: user.email,
       from: fromAddress,
-      subject: `Reminder: ${appointment.title}`,
-      html: `
-        <h2>Appointment Reminder</h2>
-        <p>Hello ${user.username},</p>
-        <p>This is a reminder for your appointment: <strong>${appointment.title}</strong></p>
-        <p><strong>Start Time:</strong> ${new Date(appointment.start_time).toLocaleString()}</p>
-        <p><strong>End Time:</strong> ${new Date(appointment.end_time).toLocaleString()}</p>
-        <p><strong>Location:</strong> ${appointment.location || 'No location specified'}</p>
-        <p><strong>Description:</strong> ${appointment.description || 'No description'}</p>
-        <hr>
-        <p>Log in to Planner Buddy to view more details.</p>
-      `
+      subject: emailTemplate.subject,
+      html: emailTemplate.html
     };
 
     // Send email

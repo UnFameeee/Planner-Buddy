@@ -19,9 +19,17 @@ const EmailQueue = sequelize.define('email_queue', {
   },
   appointment_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'appointment',
+      key: 'id'
+    }
+  },
+  todo_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'todo',
       key: 'id'
     }
   },

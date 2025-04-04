@@ -41,6 +41,7 @@ const appointmentRoutes = require('./routes/appointment.routes');
 const settingRoutes = require('./routes/setting.routes');
 const authRoutes = require('./routes/auth.routes');
 const apiRoutes = require('./routes/api');
+const emailTemplateRoutes = require('./routes/email_template.routes');
 
 // Public routes (no auth required)
 app.use('/auth', authRoutes);
@@ -113,6 +114,7 @@ app.get('/', async (req, res) => {
 app.use('/todos', authenticate, todoRoutes);
 app.use('/appointments', authenticate, appointmentRoutes);
 app.use('/settings', authenticate, settingRoutes);
+app.use('/email-templates', authenticate, emailTemplateRoutes);
 
 // Dashboard routes
 const dashboardRoutes = require('./routes/dashboard.routes');
@@ -121,6 +123,10 @@ app.use('/dashboard', authenticate, dashboardRoutes);
 // Profile routes
 const profileRoutes = require('./routes/profile.routes');
 app.use('/profile', authenticate, profileRoutes);
+
+// Email Templates UI routes
+const emailTemplateViewRoutes = require('./routes/email_template_view.routes');
+app.use('/email-templates', authenticate, emailTemplateViewRoutes);
 
 // 404 handler - must be before error handler
 app.use(async (req, res, next) => {
@@ -177,9 +183,6 @@ app.listen(PORT, () => {
     
     // Xử lý và gửi email mỗi 15 giây
     const EMAIL_PROCESS_INTERVAL = parseInt(process.env.EMAIL_PROCESS_INTERVAL || '15000', 10);
-    
-    // Thời gian để kiểm tra và tạo reminders cho appointments (mặc định 5 phút)
-    const APPOINTMENT_REMINDER_INTERVAL = parseInt(process.env.APPOINTMENT_REMINDER_INTERVAL || '300000', 10);
     
     // Khởi tạo email processor
     emailProcessorService.initializeEmailProcessor(

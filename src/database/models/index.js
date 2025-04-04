@@ -4,6 +4,7 @@ const Appointment = require('./appointment.model');
 const Setting = require('./setting.model');
 const EmailQueue = require('./email_queue.model');
 const EmailProgress = require('./email_progress.model');
+const EmailTemplate = require('./email_template.model');
 
 // Define relationships
 // User to Todo (One-to-Many)
@@ -76,11 +77,22 @@ EmailProgress.belongsTo(Appointment, {
   as: 'appointment'
 });
 
+// Todo to EmailQueue (One-to-Many)
+Todo.hasMany(EmailQueue, {
+  foreignKey: 'todo_id',
+  as: 'emailQueues'
+});
+EmailQueue.belongsTo(Todo, {
+  foreignKey: 'todo_id',
+  as: 'todo'
+});
+
 module.exports = {
   User,
   Todo,
   Appointment,
   Setting,
   EmailProgress,
-  EmailQueue
+  EmailQueue,
+  EmailTemplate
 }; 

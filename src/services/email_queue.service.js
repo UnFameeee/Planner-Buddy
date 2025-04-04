@@ -1,6 +1,7 @@
-const { EmailQueue, User, Appointment } = require('../database/models');
+const { EmailQueue, User, Appointment, Todo } = require('../database/models');
 const { Op } = require('sequelize');
 const { DateTime } = require('luxon');
+const emailTemplateService = require('./email_template.service');
 
 /**
  * Thêm email vào hàng đợi
@@ -14,6 +15,7 @@ const addToQueue = async (emailData) => {
     const {
       user_id,
       appointment_id,
+      todo_id,
       scheduled_time,
       email_type,
       email_subject,
@@ -28,18 +30,30 @@ const addToQueue = async (emailData) => {
       throw new Error('User not found');
     }
 
-    // Kiểm tra xem appointment có tồn tại không
-    const appointment = await Appointment.findByPk(appointment_id);
-    if (!appointment) {
-      console.error(`Appointment not found with id: ${appointment_id}`);
-      throw new Error('Appointment not found');
+    // Kiểm tra xem appointment hoặc todo có tồn tại không
+    if (appointment_id) {
+      const appointment = await Appointment.findByPk(appointment_id);
+      if (!appointment) {
+        console.error(`Appointment not found with id: ${appointment_id}`);
+        throw new Error('Appointment not found');
+      }
+      console.log(`Creating email queue entry for appointment: ${appointment.title}, scheduled for: ${scheduled_time}`);
+    } else if (todo_id) {
+      const todo = await Todo.findByPk(todo_id);
+      if (!todo) {
+        console.error(`Todo not found with id: ${todo_id}`);
+        throw new Error('Todo not found');
+      }
+      console.log(`Creating email queue entry for todo: ${todo.title}, scheduled for: ${scheduled_time}`);
+    } else {
+      throw new Error('Either appointment_id or todo_id must be provided');
     }
 
     // Tạo email queue mới
-    console.log(`Creating email queue entry for appointment: ${appointment.title}, scheduled for: ${scheduled_time}`);
     const emailQueue = await EmailQueue.create({
       user_id,
       appointment_id,
+      todo_id,
       scheduled_time,
       email_type: email_type || 'reminder',
       email_subject,
@@ -82,7 +96,14 @@ const getEmailsToTransfer = async () => {
         {
           model: Appointment,
           as: 'appointment',
-          attributes: ['id', 'title', 'start_time']
+          attributes: ['id', 'title', 'start_time'],
+          required: false
+        },
+        {
+          model: Todo,
+          as: 'todo',
+          attributes: ['id', 'title', 'due_date'],
+          required: false
         }
       ]
     });
@@ -96,7 +117,7 @@ const getEmailsToTransfer = async () => {
         .setZone(userTimezone);
       const nowInUserTimezone = DateTime.now().setZone(userTimezone);
 
-      console.log(`Email ID: ${email.id}, Scheduled time in ${userTimezone}: ${scheduledTimeInUserTimezone.toISO()}, Now: ${nowInUserTimezone.toISO()}`);
+      console.log(`Email ID: ${email.id}, Type: ${email.email_type}, Scheduled time in ${userTimezone}: ${scheduledTimeInUserTimezone.toISO()}, Now: ${nowInUserTimezone.toISO()}`);
 
       // Chỉ trả về email nếu thời gian đã tới theo múi giờ của người dùng
       return scheduledTimeInUserTimezone <= nowInUserTimezone;
@@ -210,20 +231,8 @@ const createAppointmentReminder = async (appointment, user) => {
       }
     }
 
-    // Tạo subject và content cho email
-    const emailSubject = `Reminder: ${appointment.title}`;
-    const emailContent = `
-      <h2>Appointment Reminder</h2>
-      <p>Hello ${user.username},</p>
-      <p>This is a reminder for your upcoming appointment:</p>
-      <p><strong>Title:</strong> ${appointment.title}</p>
-      <p><strong>Time:</strong> ${new Date(appointment.start_time).toLocaleString()}</p>
-      <p><strong>End Time:</strong> ${appointment.end_time ? new Date(appointment.end_time).toLocaleString() : 'Not specified'}</p>
-      <p><strong>Location:</strong> ${appointment.location || 'Not specified'}</p>
-      <p><strong>Description:</strong> ${appointment.description || 'Not provided'}</p>
-      <hr>
-      <p>Log in to Planner Buddy to view more details or manage your appointments.</p>
-    `;
+    // Lấy template email từ service
+    const emailTemplate = await emailTemplateService.renderAppointmentReminderTemplate(appointment, user);
 
     // Thêm vào queue
     console.log('Adding reminder to email queue...');
@@ -232,8 +241,8 @@ const createAppointmentReminder = async (appointment, user) => {
       appointment_id: appointment.id,
       scheduled_time: scheduledTime,
       email_type: 'reminder',
-      email_subject: emailSubject,
-      email_content: emailContent,
+      email_subject: emailTemplate.subject,
+      email_content: emailTemplate.html,
       timezone: user.timezone
     });
 
@@ -245,10 +254,67 @@ const createAppointmentReminder = async (appointment, user) => {
   }
 };
 
+/**
+ * Tạo email reminder cho todo và thêm vào queue
+ * @param {Object} todo - Todo cần tạo reminder
+ * @param {Object} user - User của todo
+ * @return {Promise<Object>} - Email queue đã tạo
+ */
+const createTodoReminder = async (todo, user) => {
+  try {
+    console.log(`Creating todo reminder for todo ID: ${todo.id}, Title: ${todo.title}`);
+    
+    // Nếu không có reminder_time thì không tạo reminder
+    if (!todo.reminder_time) {
+      console.log('No reminder time set for this todo, skipping reminder creation');
+      return null;
+    }
+
+    // Kiểm tra xem đã có reminder cho todo này chưa
+    const existingReminders = await EmailQueue.findAll({
+      where: {
+        todo_id: todo.id,
+        status: 'pending'
+      }
+    });
+    
+    if (existingReminders.length > 0) {
+      console.log(`Found ${existingReminders.length} existing pending reminders for this todo. Cancelling them before creating new one.`);
+      // Hủy các reminder cũ
+      for (const reminder of existingReminders) {
+        await reminder.update({ status: 'canceled' });
+        console.log(`Canceled existing reminder with ID: ${reminder.id}`);
+      }
+    }
+
+    // Lấy template email từ service
+    const emailTemplate = await emailTemplateService.renderTodoReminderTemplate(todo, user);
+
+    // Thêm vào queue
+    console.log('Adding todo reminder to email queue...');
+    const emailQueue = await addToQueue({
+      user_id: user.id,
+      todo_id: todo.id,
+      scheduled_time: todo.reminder_time,
+      email_type: 'todo_reminder',
+      email_subject: emailTemplate.subject,
+      email_content: emailTemplate.html,
+      timezone: user.timezone
+    });
+
+    console.log(`Todo reminder added to queue successfully with ID: ${emailQueue.id}`);
+    return emailQueue;
+  } catch (error) {
+    console.error('Error creating todo reminder:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   addToQueue,
   getEmailsToTransfer,
   updateQueueStatus,
   removeFromQueue,
-  createAppointmentReminder
+  createAppointmentReminder,
+  createTodoReminder
 }; 

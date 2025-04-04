@@ -11,7 +11,9 @@
     "migration:add-email-tables": "node src/database/migrations/add-email-tables.js",
     "migration:add-deleted-at": "node src/database/migrations/add-deleted-at-columns.js",
     "migration:add-appointment-type": "node src/database/migrations/add-appointment-type.js",
-    "migration:fix-appointment-type": "node src/database/migrations/fix-appointment-type.js"
+    "migration:fix-appointment-type": "node src/database/migrations/fix-appointment-type.js",
+    "migration:add-email-template": "node src/database/migrations/add-email-template.js",
+    "migration:add-todo-to-email-queue": "node src/database/migrations/add-todo-to-email-queue.js"
   },
   "dependencies": {
     "axios": "^0.27.2",
