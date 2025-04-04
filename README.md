@@ -135,13 +135,6 @@ A comprehensive task and appointment management system with email reminders via 
 - `PUT /settings/:key` - Update a setting
 - `DELETE /settings/:key` - Delete a setting
 
-## Default User
-
-After running the database initialization script, a default admin user will be created:
-
-- Email: admin@example.com
-- Password: admin123
-
 ## License
 
 MIT
