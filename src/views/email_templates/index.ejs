@@ -81,13 +81,6 @@
               </ul>
             </div>
           </div>
-          
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="templateActive" checked>
-            <label class="form-check-label" for="templateActive">
-              Active
-            </label>
-          </div>
         </form>
       </div>
       <div class="modal-footer">
@@ -144,7 +137,6 @@
       const name = document.getElementById('templateName').value;
       const subject = document.getElementById('templateSubject').value;
       const content = document.getElementById('templateHtml').value;
-      const is_active = document.getElementById('templateActive').checked;
       
       if (!name || !subject || !content) {
         alert('Please fill all required fields');
@@ -154,8 +146,7 @@
       const templateData = {
         name,
         subject,
-        content,
-        is_active
+        content
       };
       
       // Create or update
@@ -251,7 +242,14 @@
       document.getElementById('templateName').value = template.name;
       document.getElementById('templateSubject').value = template.subject;
       document.getElementById('templateHtml').value = template.content;
-      document.getElementById('templateActive').checked = template.is_active;
+      
+      // Disable name input nếu là template mặc định
+      const nameInput = document.getElementById('templateName');
+      if (['todo_reminder', 'appointment_reminder'].includes(template.name)) {
+        nameInput.disabled = true;
+      } else {
+        nameInput.disabled = false;
+      }
       
       document.getElementById('templateModalLabel').textContent = 'Edit Template';
       

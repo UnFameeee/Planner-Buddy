@@ -1,24 +1,29 @@
-const { EmailTemplate } = require('../database/models');
+const { Setting } = require('../database/models');
 
 /**
  * Lấy template email theo tên
- * @param {string} name - Tên template cần lấy
+ * @param {string} name - Tên template cần lấy (key trong settings)
  * @return {Promise<Object>} - Template email
  */
 const getTemplateByName = async (name) => {
   try {
-    const template = await EmailTemplate.findOne({
+    const template = await Setting.findOne({
       where: {
-        name,
-        is_active: true
+        key: `email_template_${name}`
       }
     });
     
     if (!template) {
-      throw new Error(`Template không tồn tại hoặc không active: ${name}`);
+      throw new Error(`Template không tồn tại: ${name}`);
     }
     
-    return template;
+    // Parse JSON từ value
+    try {
+      return JSON.parse(template.value);
+    } catch (parseError) {
+      console.error(`Error parsing template JSON for ${name}:`, parseError);
+      throw new Error(`Template format invalid: ${name}`);
+    }
   } catch (error) {
     console.error(`Error getting email template ${name}:`, error);
     throw error;
@@ -32,6 +37,8 @@ const getTemplateByName = async (name) => {
  * @return {string} - Nội dung đã thay thế merge tags
  */
 const replaceMergeTags = (content, data) => {
+  if (!content) return '';
+  
   let result = content;
   
   // Thay thế tất cả merge tags
@@ -152,9 +159,125 @@ const renderTodoReminderTemplate = async (todo, user) => {
   }
 };
 
+/**
+ * Lưu template vào database
+ * @param {string} name - Tên template
+ * @param {Object} template - Dữ liệu template (có subject và content)
+ * @return {Promise<Object>} - Template đã lưu
+ */
+const saveTemplate = async (name, template) => {
+  try {
+    // Chuẩn bị key cho settings
+    const key = `email_template_${name}`;
+    
+    // Tìm setting hiện tại
+    let setting = await Setting.findOne({
+      where: { key }
+    });
+    
+    // Chuyển template thành JSON string
+    const templateValue = JSON.stringify(template);
+    
+    if (setting) {
+      // Cập nhật setting hiện có
+      setting.value = templateValue;
+      await setting.save();
+    } else {
+      // Tạo setting mới
+      setting = await Setting.create({
+        key,
+        value: templateValue,
+        description: `Email template for ${name}`
+      });
+    }
+    
+    return template;
+  } catch (error) {
+    console.error(`Error saving email template ${name}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Tạo mẫu mặc định cho todo reminder
+ * @return {Promise<Object>} - Template đã tạo
+ */
+const createDefaultTodoTemplate = async () => {
+  const template = {
+    subject: 'Todo Reminder: {{todo_title}}',
+    content: `
+      <h2>Todo Reminder</h2>
+      <p>Hello {{recipient_name}},</p>
+      <p>This is a reminder for your todo: <strong>{{todo_title}}</strong></p>
+      <p><strong>Due Date:</strong> {{todo_due_date}}</p>
+      <p><strong>Description:</strong> {{todo_description}}</p>
+      <p><strong>Priority:</strong> {{todo_priority}}</p>
+      <hr>
+      <p>Log in to Planner Buddy to view more details or mark this todo as completed.</p>
+    `
+  };
+  
+  return await saveTemplate('todo_reminder', template);
+};
+
+/**
+ * Tạo mẫu mặc định cho appointment reminder
+ * @return {Promise<Object>} - Template đã tạo
+ */
+const createDefaultAppointmentTemplate = async () => {
+  const template = {
+    subject: 'Appointment Reminder: {{appointment_title}}',
+    content: `
+      <h2>Appointment Reminder</h2>
+      <p>Hello {{recipient_name}},</p>
+      <p>This is a reminder for your appointment: <strong>{{appointment_title}}</strong></p>
+      <p><strong>Start Time:</strong> {{appointment_time}}</p>
+      <p><strong>End Time:</strong> {{appointment_end_time}}</p>
+      <p><strong>Location:</strong> {{appointment_location}}</p>
+      <p><strong>Description:</strong> {{appointment_description}}</p>
+      <hr>
+      <p>Log in to Planner Buddy to view more details.</p>
+    `
+  };
+  
+  return await saveTemplate('appointment_reminder', template);
+};
+
+/**
+ * Đảm bảo các template mặc định đã được tạo
+ * @return {Promise<void>}
+ */
+const ensureDefaultTemplates = async () => {
+  try {
+    // Kiểm tra và tạo template todo reminder
+    try {
+      await getTemplateByName('todo_reminder');
+      console.log('Todo reminder template already exists');
+    } catch (error) {
+      console.log('Creating default todo reminder template');
+      await createDefaultTodoTemplate();
+    }
+    
+    // Kiểm tra và tạo template appointment reminder
+    try {
+      await getTemplateByName('appointment_reminder');
+      console.log('Appointment reminder template already exists');
+    } catch (error) {
+      console.log('Creating default appointment reminder template');
+      await createDefaultAppointmentTemplate();
+    }
+  } catch (error) {
+    console.error('Error ensuring default templates:', error);
+  }
+};
+
 module.exports = {
   getTemplateByName,
   replaceMergeTags,
   renderAppointmentReminderTemplate,
-  renderTodoReminderTemplate
+  renderTodoReminderTemplate,
+  saveTemplate,
+  createDefaultTodoTemplate,
+  createDefaultAppointmentTemplate,
+  ensureDefaultTemplates
 }; 

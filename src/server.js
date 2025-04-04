@@ -12,6 +12,7 @@ const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = process.env;
 const emailProcessorService = require('./services/email_processor.service');
 const appointmentService = require('./services/appointment.service');
+const emailTemplateService = require('./services/email_template.service');
 
 // Basic middleware
 app.use(express.json());
@@ -48,6 +49,9 @@ app.use('/auth', authRoutes);
 
 // API routes (with /api prefix)
 app.use('/api', apiRoutes);
+
+// API routes for email templates (directly on /api/)
+app.use('/api/email-templates', authenticate, emailTemplateRoutes);
 
 // Legacy API compatibility - ensure old API calls still work while transitioning to new structure
 // This forwards non-HTML requests to the new API endpoints
@@ -114,7 +118,6 @@ app.get('/', async (req, res) => {
 app.use('/todos', authenticate, todoRoutes);
 app.use('/appointments', authenticate, appointmentRoutes);
 app.use('/settings', authenticate, settingRoutes);
-app.use('/email-templates', authenticate, emailTemplateRoutes);
 
 // Dashboard routes
 const dashboardRoutes = require('./routes/dashboard.routes');
@@ -191,5 +194,14 @@ app.listen(PORT, () => {
     );
     
     console.log('Email reminder processor initialized');
+    
+    // Đảm bảo các template email mặc định đã được tạo
+    emailTemplateService.ensureDefaultTemplates()
+      .then(() => {
+        console.log('Default email templates initialized');
+      })
+      .catch(error => {
+        console.error('Error initializing default email templates:', error);
+      });
   }
 }); 
